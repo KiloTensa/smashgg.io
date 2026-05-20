@@ -20,10 +20,10 @@ export default function LogoHeader() {
         style={{ background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.3), transparent)' }}
       />
       <img
-        src="https://cdn.discordapp.com/attachments/1310986121379057715/1428442742203224234/Sin_titulo-3.png?ex=68f28478&is=68f132f8&hm=5acfa8ff524b6dc800179a69f8c922972f073b36065de3642851be107a38d46b"
-        alt="Custom Logo"
+        src="./src/components/img/KTBLANCO.png"
+        alt="KT566"
         className="h-9 md:h-11 w-auto hidden md:block"
-        style={{ filter: 'invert(1) grayscale(1) drop-shadow(0 0 4px rgba(255,255,255,0.7))', opacity: 0.85 }}
+        style={{ filter: 'invert(0) grayscale(1) drop-shadow(0 0 8px rgba(255,255,255,0.7))', opacity: 0.85 }}
       />
     </motion.div>
   );
