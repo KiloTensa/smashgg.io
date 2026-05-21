@@ -108,90 +108,66 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
     const intro = anime.timeline({ easing: 'easeOutExpo' });
 
     intro
-      .add(
-        {
-          targets: overlayRef.current,
-          opacity: [0, 1],
-          duration: 260,
-        },
-        0,
-      )
-      .add(
-        {
-          targets: burstRef.current,
-          scale: [0.5, 1.18],
-          opacity: [0, 0.55, 0],
-          duration: 1100,
-          easing: 'easeOutQuad',
-        },
-        0,
-      )
-      .add(
-        {
-          targets: ringRef.current,
-          scale: [0.7, 1],
-          opacity: [0, 1],
-          duration: 730,
-          easing: 'easeOutBack',
-        },
-        80,
-      )
-      .add(
-        {
-          targets: modalRef.current,
-          opacity: [0, 1],
-          scale: [0.72, 1.02, 1],
-          rotateY: ['20deg', '0deg'],
-          duration: 840,
-        },
-        0,
-      )
-      .add(
-        {
-          targets: trophyRef.current,
-          translateY: [52, 0],
-          rotate: ['-90deg', '18deg', '0deg'],
-          scale: [0.44, 1.14, 1],
-          opacity: [0, 1],
-          duration: 920,
-          elasticity: 700,
-        },
-        '-=640',
-      )
-      .add(
-        {
-          targets: winnerRef.current,
-          translateY: [24, 0],
-          opacity: [0, 1],
-          letterSpacing: ['0.95em', '0.14em'],
-          duration: 740,
-          easing: 'easeOutQuart',
-        },
-        '-=520',
-      )
-      .add(
-        {
-          targets: buttonRef.current,
-          opacity: [0, 1],
-          translateY: [22, 0],
-          scale: [0.92, 1],
-          duration: 620,
-          easing: 'easeOutBack',
-        },
-        '-=360',
-      )
-      .add(
-        {
-          targets: sparkRefs.current,
-          opacity: [0, 1, 0],
-          scale: [0.4, 1.05, 0.8],
-          translateY: [-26, 0, -10],
-          duration: 950,
-          delay: anime.stagger(80),
-          easing: 'easeOutSine',
-        },
-        '-=800',
-      );
+      .add({
+        targets: overlayRef.current,
+        opacity: [0, 1],
+        duration: 260,
+      }, 0)
+      .add({
+        targets: burstRef.current,
+        scale: [0.5, 1.18],
+        opacity: [0, 0.55, 0],
+        duration: 1100,
+        easing: 'easeOutQuad',
+      }, 0)
+      .add({
+        targets: ringRef.current,
+        scale: [0.7, 1],
+        opacity: [0, 1],
+        duration: 730,
+        easing: 'easeOutBack',
+      }, 80)
+      .add({
+        targets: modalRef.current,
+        opacity: [0, 1],
+        scale: [0.72, 1.02, 1],
+        rotateY: ['20deg', '0deg'],
+        duration: 840,
+      }, 0)
+      .add({
+        targets: trophyRef.current,
+        translateY: [52, 0],
+        rotate: ['-90deg', '18deg', '0deg'],
+        scale: [0.44, 1.14, 1],
+        opacity: [0, 1],
+        duration: 920,
+        elasticity: 700,
+      }, '-=640')
+      .add({
+        targets: winnerRef.current,
+        translateY: [24, 0],
+        opacity: [0, 1],
+        letterSpacing: ['0.95em', '0.14em'],
+        duration: 740,
+        easing: 'easeOutQuart',
+      }, '-=520')
+      .add({
+        targets: buttonRef.current,
+        opacity: [0, 1],
+        translateY: [22, 0],
+        scale: [0.92, 1],
+        duration: 620,
+        easing: 'easeOutBack',
+      }, '-=360')
+      .add({
+        targets: sparkRefs.current,
+        opacity: [0, 1, 0],
+        scale: [0.4, 1.05, 0.8],
+        translateY: [-26, 0, -10],
+        duration: 950,
+        delay: anime.stagger(80),
+        easing: 'easeOutSine',
+      }, '-=800');
 
     const spin = anime({
       targets: ringRef.current,
@@ -220,51 +196,27 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
   useEffect(() => {
     const modal = modalRef.current;
     const overlay = overlayRef.current;
+    const burst = burstRef.current;
     if (!modal || !overlay) return;
 
+    // OPTIMIZADO: Mutación directa de estilos sin instanciar Anime.js en bucle masivo
     const handleMove = (event) => {
       const rect = modal.getBoundingClientRect();
       const x = (event.clientX - rect.left - rect.width / 2) / rect.width;
       const y = (event.clientY - rect.top - rect.height / 2) / rect.height;
 
-      anime({
-        targets: modal,
-        rotateY: `${x * 10}deg`,
-        rotateX: `${-y * 8}deg`,
-        translateX: `${x * 6}px`,
-        translateY: `${y * 4}px`,
-        duration: 280,
-        easing: 'easeOutQuad',
-      });
-
-      anime({
-        targets: burstRef.current,
-        translateX: `${x * 40}px`,
-        translateY: `${y * 30}px`,
-        duration: 300,
-        easing: 'easeOutQuad',
-      });
-
+      modal.style.transform = `perspective(1400px) rotateY(${x * 10}deg) rotateX(${-y * 8}deg) translateX(${x * 6}px) translateY(${y * 4}px)`;
+      if (burst) {
+        burst.style.transform = `translateX(calc(-50% + ${x * 40}px)) translateY(${y * 30}px)`;
+      }
       overlay.style.backgroundPosition = `${50 + x * 8}% ${45 + y * 6}%`;
     };
 
     const reset = () => {
-      anime({
-        targets: modal,
-        rotateY: '0deg',
-        rotateX: '0deg',
-        translateX: '0px',
-        translateY: '0px',
-        duration: 500,
-        easing: 'easeOutQuad',
-      });
-      anime({
-        targets: burstRef.current,
-        translateX: '0px',
-        translateY: '0px',
-        duration: 500,
-        easing: 'easeOutQuad',
-      });
+      modal.style.transform = 'perspective(1400px) rotateY(0deg) rotateX(0deg) translateX(0px) translateY(0px)';
+      if (burst) {
+        burst.style.transform = 'translateX(-50%) translateY(0px)';
+      }
       overlay.style.backgroundPosition = '50% 45%';
     };
 
@@ -287,7 +239,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
 
       <div
         ref={overlayRef}
-        className="fixed inset-0 flex items-center justify-center"
+        className="fixed inset-0 flex items-center justify-center transition-all duration-300"
         style={{
           zIndex: 200,
           opacity: 0,
@@ -298,7 +250,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
       >
         <div
           ref={burstRef}
-          className="absolute pointer-events-none"
+          className="absolute pointer-events-none transition-transform duration-300 ease-out"
           style={{
             top: '12%',
             left: '50%',
@@ -327,7 +279,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
 
         <div
           ref={modalRef}
-          className="relative text-center px-10 py-12 rounded-[32px] mx-4 max-w-xl w-full"
+          className="relative text-center px-10 py-12 rounded-[32px] mx-4 max-w-xl w-full transition-transform duration-300 ease-out"
           style={{
             background: 'linear-gradient(160deg, rgba(6,5,18,0.98) 0%, rgba(21,17,33,0.98) 100%)',
             border: '1px solid rgba(255,205,40,0.25)',

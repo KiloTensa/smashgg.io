@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SmashTitle from './SmashTitle';
 import SmashButton from './SmashButton';
@@ -7,27 +7,52 @@ import smashCharacters from '@/lib/smashCharacters';
 
 export default function SelectionScreen({ gameState, onUpdateState, onReady, onBack }) {
   const { players, currentSelectionPlayer, charactersPerPlayer, listMode, playerCount } = gameState;
-  const [, forceRender] = useState(0);
 
   const isComplete = currentSelectionPlayer >= playerCount;
   const currentPlayer = !isComplete ? players[currentSelectionPlayer] : null;
   const selectedCount = currentPlayer?.characters?.length || 0;
 
-  const getDotsForChar = useCallback((charIndex) => {
-    const dots = [];
+  // ESTADOS DE OPTIMIZACIÓN
+  const [searchTerm, setSearchTerm] = useState('');
+  const [visibleLimit, setVisibleLimit] = useState(24); // Carga inicial pequeña para evitar lag
+
+  // Carga progresiva de los personajes para no saturar el hilo principal
+  useEffect(() => {
+    if (visibleLimit < smashCharacters.length) {
+      const timer = setTimeout(() => {
+        setVisibleLimit(prev => Math.min(prev + 20, smashCharacters.length));
+      }, 50); // Agrega 20 personajes cada 50ms en segundo plano
+      return () => clearTimeout(timer);
+    }
+  }, [visibleLimit]);
+
+  // OPTIMIZACIÓN: Diccionario O(1) para las selecciones
+  const dotsMap = useMemo(() => {
+    const map = {};
     players.forEach((player, pIdx) => {
-      if (player.characters.includes(charIndex)) {
-        dots.push({ color: player.color, playerIndex: pIdx });
-      }
+      player.characters.forEach(charIndex => {
+        if (!map[charIndex]) map[charIndex] = [];
+        map[charIndex].push({ color: player.color, playerIndex: pIdx });
+      });
     });
-    return dots;
+    return map;
   }, [players]);
+
+  // OPTIMIZACIÓN: Filtrado eficiente por texto
+  const filteredCharacters = useMemo(() => {
+    return smashCharacters
+      .map((char, index) => ({ ...char, originalIndex: index }))
+      .filter(char => char.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [searchTerm]);
+
+  // Cortamos la lista según el límite de carga progresiva
+  const charactersToRender = filteredCharacters.slice(0, visibleLimit);
 
   const handleCharClick = (charIndex) => {
     if (isComplete || !currentPlayer) return;
     if (listMode === 'shared' && currentSelectionPlayer > 0) return;
 
-    const newState = JSON.parse(JSON.stringify(gameState));
+    const newState = structuredClone(gameState);
     const cp = newState.players[newState.currentSelectionPlayer];
     const idx = cp.characters.indexOf(charIndex);
 
@@ -47,66 +72,89 @@ export default function SelectionScreen({ gameState, onUpdateState, onReady, onB
         }
       }
     }
-
     onUpdateState(newState);
-    forceRender(v => v + 1);
   };
 
   const handleColorChange = (e) => {
     if (isComplete) return;
-    const newState = JSON.parse(JSON.stringify(gameState));
+    const newState = structuredClone(gameState);
     newState.players[newState.currentSelectionPlayer].color = e.target.value;
     onUpdateState(newState);
-    forceRender(v => v + 1);
   };
 
   return (
-    <div className="flex flex-col items-center w-full max-w-6xl mx-auto">
+    <div className="flex flex-col items-center w-full max-w-6xl mx-auto px-2">
+      <style>{`
+        @keyframes smashCardEnter {
+          from { opacity: 0; transform: scale(0.92); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes smashCardFlash {
+          from { opacity: 0.6; }
+          to { opacity: 0; }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(0,0,0,0.3);
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(59,185,255,0.3);
+          border-radius: 4px;
+        }
+      `}</style>
+
       <SmashTitle subtitle="Elige tu roster">SELECCIÓN DE PERSONAJES</SmashTitle>
+
+      {/* Buscador - Reduce drásticamente la carga visual si buscas a alguien */}
+      <div className="w-full max-w-md mb-4 relative z-10">
+        <input
+          type="text"
+          placeholder="🔍 BUSCAR PERSONAJE..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full bg-black/80 border-2 border-white/20 rounded px-4 py-1.5 font-smash text-sm text-white tracking-widest text-center focus:outline-none focus:border-[#3bb9ff] transition-colors"
+          style={{ boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}
+        />
+      </div>
 
       {/* Status bar */}
       <AnimatePresence mode="wait">
         <motion.div
           key={isComplete ? 'complete' : currentSelectionPlayer}
-          initial={{ opacity: 0, y: -12 }}
+          initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 12 }}
-          transition={{ duration: 0.25 }}
-          className="flex items-center gap-4 mb-4 px-6 py-3 rounded"
+          exit={{ opacity: 0, y: 6 }}
+          transition={{ duration: 0.15 }}
+          className="flex items-center gap-4 mb-3 px-5 py-2.5 rounded"
           style={{
             background: 'linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(10,8,22,0.9) 100%)',
             border: `2px solid ${isComplete ? '#ffcc00' : (currentPlayer?.color || '#3bb9ff')}`,
-            boxShadow: `0 0 16px ${isComplete ? 'rgba(255,204,0,0.4)' : (currentPlayer?.color + '55' || 'rgba(59,185,255,0.35)')}`,
           }}
         >
           {isComplete ? (
-            <span className="font-smash text-xl md:text-2xl" style={{ color: '#ffcc00' }}>
-              ✓ ¡Selección completa! Listo para comenzar
+            <span className="font-smash text-lg md:text-xl" style={{ color: '#ffcc00' }}>
+              ✓ ¡Selección completa!
             </span>
           ) : (
             <>
-              <span
-                className="font-smash text-xl md:text-2xl"
-                style={{ color: currentPlayer?.color }}
-              >
+              <span className="font-smash text-lg md:text-xl" style={{ color: currentPlayer?.color }}>
                 {listMode === 'shared' ? players[0]?.name : currentPlayer?.name}
               </span>
-              <span className="font-smash text-lg text-white/60">elige</span>
-              {/* Progress pips */}
-              <div className="flex gap-2 ml-2">
+              <div className="flex gap-1.5 ml-1">
                 {Array.from({ length: charactersPerPlayer }).map((_, i) => (
                   <span
                     key={i}
-                    className="w-4 h-4 rounded-sm border-2 transition-all duration-300"
+                    className="w-3.5 h-3.5 rounded-sm border"
                     style={{
                       background: i < selectedCount ? currentPlayer?.color : 'transparent',
                       borderColor: i < selectedCount ? currentPlayer?.color : 'rgba(255,255,255,0.2)',
-                      boxShadow: i < selectedCount ? `0 0 8px ${currentPlayer?.color}` : 'none',
                     }}
                   />
                 ))}
               </div>
-              <span className="font-smash text-base text-white/40 ml-1">
+              <span className="font-smash text-sm text-white/40">
                 {selectedCount}/{charactersPerPlayer}
               </span>
             </>
@@ -116,33 +164,47 @@ export default function SelectionScreen({ gameState, onUpdateState, onReady, onB
 
       {/* Color picker */}
       {!isComplete && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex items-center gap-3 mb-4 px-5 py-2 rounded"
-          style={{
-            background: 'rgba(0,0,0,0.75)',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}
-        >
-          <span className="font-smash text-sm uppercase tracking-widest text-white/50">
-            Color:
-          </span>
+        <div className="flex items-center gap-3 mb-4 px-4 py-1.5 rounded bg-black/60 border border-white/10">
+          <span className="font-smash text-xs tracking-widest text-white/40">COLOR:</span>
           <input
             type="color"
             value={currentPlayer?.color || '#FFD700'}
             onChange={handleColorChange}
-            className="w-10 h-7 border-2 rounded cursor-pointer bg-transparent"
+            className="w-8 h-6 border rounded cursor-pointer bg-transparent"
             style={{ borderColor: currentPlayer?.color || '#FFD700' }}
           />
-          <span className="font-smash text-base" style={{ color: currentPlayer?.color }}>
-            {listMode === 'shared' ? players[0]?.name : currentPlayer?.name}
-          </span>
-        </motion.div>
+        </div>
       )}
 
+      {/* Character grid */}
+      <div
+        className="grid gap-2 w-full overflow-y-auto p-3 rounded-lg border-2 custom-scrollbar"
+        style={{
+          gridTemplateColumns: 'repeat(auto-fill, minmax(115px, 1fr))',
+          maxHeight: '48vh',
+          background: 'rgba(6, 4, 14, 0.96)',
+          borderColor: 'rgba(59,185,255,0.3)',
+        }}
+      >
+        {charactersToRender.map((char) => (
+          <CharacterCard
+            key={char.originalIndex}
+            character={char}
+            index={char.originalIndex}
+            dots={dotsMap[char.originalIndex] || []}
+            onClick={() => handleCharClick(char.originalIndex)}
+          />
+        ))}
+
+        {filteredCharacters.length === 0 && (
+          <div className="col-span-full text-center py-12 font-smash text-white/30 text-sm tracking-widest">
+            NO SE ENCONTRARON PERSONAJES
+          </div>
+        )}
+      </div>
+
       {/* Player overview pills */}
-      <div className="flex gap-3 mb-4 flex-wrap justify-center">
+      <div className="flex gap-2 mt-4 flex-wrap justify-center">
         {players.map((p, i) => {
           const done = listMode === 'shared'
             ? (i === 0 ? currentSelectionPlayer >= 1 : currentSelectionPlayer >= playerCount)
@@ -151,12 +213,11 @@ export default function SelectionScreen({ gameState, onUpdateState, onReady, onB
           return (
             <div
               key={i}
-              className="font-smash text-sm uppercase tracking-wider px-3 py-1 rounded border transition-all"
+              className="font-smash text-xs uppercase px-2.5 py-0.5 rounded border transition-all"
               style={{
                 borderColor: p.color,
-                color: active ? p.color : done ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.25)',
-                background: active ? `${p.color}22` : 'transparent',
-                boxShadow: active ? `0 0 10px ${p.color}55` : 'none',
+                color: active ? p.color : done ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)',
+                background: active ? `${p.color}15` : 'transparent',
               }}
             >
               {done ? '✓ ' : active ? '▶ ' : ''}{p.name}
@@ -165,44 +226,16 @@ export default function SelectionScreen({ gameState, onUpdateState, onReady, onB
         })}
       </div>
 
-      {/* Character grid */}
-      <div
-        className="grid gap-2 w-full overflow-y-auto p-3 rounded-lg border-2"
-        style={{
-          gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))',
-          maxHeight: '55vh',
-          background: 'linear-gradient(160deg, rgba(8,6,20,0.97) 0%, rgba(4,4,14,0.99) 100%)',
-          borderColor: 'rgba(59,185,255,0.4)',
-          boxShadow: '0 0 30px rgba(59,185,255,0.2), inset 0 0 20px rgba(0,0,0,0.5)',
-        }}
-      >
-        {smashCharacters.map((char, i) => (
-          <CharacterCard
-            key={i}
-            character={char}
-            index={i}
-            dots={getDotsForChar(i)}
-            onClick={() => handleCharClick(i)}
-          />
-        ))}
-      </div>
-
       {/* Buttons */}
-      <div className="flex flex-col items-center gap-3 mt-5">
+      <div className="flex flex-col items-center gap-2 mt-4">
         {isComplete && (
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: 'spring', stiffness: 250 }}
-          >
-            <SmashButton onClick={onReady} size="large" variant="gold">¡LISTO! ▶</SmashButton>
-          </motion.div>
+          <SmashButton onClick={onReady} size="large" variant="gold">¡LISTO! ▶</SmashButton>
         )}
         <button
           onClick={onBack}
-          className="font-smash text-sm uppercase tracking-widest text-white/35 hover:text-white/70 transition-colors"
+          className="font-smash text-xs uppercase tracking-widest text-white/30 hover:text-white/60 mt-1"
         >
-          ← Volver a Configuración
+          ← Volver
         </button>
       </div>
     </div>

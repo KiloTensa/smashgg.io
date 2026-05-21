@@ -1,9 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
 
 const variants = {
-  initial: { opacity: 0, scale: 0.97, y: 20, filter: 'blur(8px)' },
-  animate: { opacity: 1, scale: 1, y: 0, filter: 'blur(0px)' },
-  exit:    { opacity: 0, scale: 1.02, y: -15, filter: 'blur(6px)' },
+  initial: { opacity: 0, y: 15, scale: 0.98 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit:    { opacity: 0, y: -10, scale: 1.01 },
 };
 
 export default function ScreenTransition({ screenKey, children }) {
@@ -15,9 +15,14 @@ export default function ScreenTransition({ screenKey, children }) {
         initial="initial"
         animate="animate"
         exit="exit"
-        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        // Reducimos ligeramente la duración para que la app se sienta instantánea y responsiva
+        transition={{ duration: 0.22, ease: 'easeOut' }}
         className="min-h-screen w-full flex flex-col items-center justify-center px-4 py-20 md:py-12 relative"
-        style={{ zIndex: 10 }}
+        style={{ 
+          zIndex: 10,
+          // Le dice al navegador que optimice este contenedor para animaciones fluidas
+          willChange: 'transform, opacity' 
+        }}
       >
         {children}
       </motion.div>

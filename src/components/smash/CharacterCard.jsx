@@ -1,5 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function CharacterCard({ character, index, dots, onClick }) {
   const isSelected = dots && dots.length > 0;
@@ -7,21 +6,23 @@ export default function CharacterCard({ character, index, dots, onClick }) {
 
   const handleClick = () => {
     setFlash(true);
-    setTimeout(() => setFlash(false), 300);
     onClick();
   };
+
+
+  useEffect(() => {
+    if (flash) {
+      const timer = setTimeout(() => setFlash(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [flash]);
 
   const primaryColor = isSelected ? dots[0].color : null;
 
   return (
-    <motion.div
-      initial={{ scale: 0.85, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      transition={{ duration: 0.25, delay: index * 0.004 }}
+    <div
       onClick={handleClick}
-      whileHover={{ scale: 1.07, zIndex: 20 }}
-      whileTap={{ scale: 0.94 }}
-      className="relative flex flex-col items-center justify-end p-2 cursor-pointer select-none overflow-hidden"
+      className="relative flex flex-col items-center justify-end p-2 cursor-pointer select-none overflow-hidden transition-all duration-200 hover:scale-[1.07] hover:z-20 active:scale-[0.94]"
       style={{
         minHeight: '145px',
         borderRadius: '6px',
@@ -34,7 +35,9 @@ export default function CharacterCard({ character, index, dots, onClick }) {
         boxShadow: isSelected
           ? `0 0 18px ${primaryColor}99, 0 0 6px ${primaryColor}55, inset 0 0 12px ${primaryColor}22`
           : '0 2px 8px rgba(0,0,0,0.6)',
-        transition: 'border-color 0.2s, box-shadow 0.2s, background 0.2s',
+        animation: 'smashCardEnter 0.22s ease-out forwards',
+        animationDelay: `${index * 3}ms`,
+        opacity: 0,
       }}
     >
       {/* Top corner accent */}
@@ -62,33 +65,30 @@ export default function CharacterCard({ character, index, dots, onClick }) {
         </div>
       )}
 
-      {/* Flash effect on select */}
-      <AnimatePresence>
-        {flash && (
-          <motion.div
-            initial={{ opacity: 0.7 }}
-            animate={{ opacity: 0 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0 rounded pointer-events-none"
-            style={{ background: 'white', zIndex: 10 }}
-          />
-        )}
-      </AnimatePresence>
+      {/* Flash effect (Sin AnimatePresence, directo por CSS) */}
+      {flash && (
+        <div
+          className="absolute inset-0 rounded pointer-events-none bg-white"
+          style={{
+            zIndex: 10,
+            animation: 'smashCardFlash 0.3s ease-out forwards',
+          }}
+        />
+      )}
 
-      <img
-        src={character.image}
-        alt={character.name}
-        className="w-20 h-auto mb-1 relative"
-        style={{
-          filter: isSelected
-            ? `drop-shadow(0 0 6px ${primaryColor}) drop-shadow(0 2px 4px rgba(0,0,0,0.9))`
-            : 'drop-shadow(0 2px 6px rgba(0,0,0,0.8)) brightness(0.9)',
-          transition: 'filter 0.2s',
-          zIndex: 2,
-        }}
-        loading="lazy"
-      />
+<img
+  src={character.image}
+  alt={character.name}
+  className="w-20 h-auto mb-1 relative"
+  style={{
+    filter: isSelected
+      ? `drop-shadow(0 0 6px ${primaryColor}) drop-shadow(0 2px 4px rgba(0,0,0,0.9))`
+      : 'drop-shadow(0 2px 6px rgba(0,0,0,0.8)) brightness(0.9)',
+    transition: 'filter 0.2s',
+    zIndex: 2,
+  }}
+  decoding="sync" 
+/>
       <div
         className="text-center font-smash text-xs uppercase tracking-wide w-full"
         style={{
@@ -100,6 +100,6 @@ export default function CharacterCard({ character, index, dots, onClick }) {
       >
         {character.name}
       </div>
-    </motion.div>
+    </div>
   );
 }
