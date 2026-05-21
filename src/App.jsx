@@ -9,7 +9,7 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClientInstance}>
-      <Router>
+      <Router basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<SmashGunGame />} />
           <Route path="*" element={<PageNotFound />} />
