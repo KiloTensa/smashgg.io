@@ -107,20 +107,20 @@ export default function PlayerGameCard({ player, playerIndex, onWinRound }) {
       </div>
 
       {/* Character art */}
-      <motion.img
-        key={charData.name}
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-        src={charData.image}
-        loading="eager"
-        alt={charData.name}
-        className="w-36 md:w-44 h-auto"
-        style={{
-          filter: `drop-shadow(0 0 8px ${player.color}88) drop-shadow(0 4px 8px rgba(0,0,0,0.9))`,
-          zIndex: 2,
-        }}
-      />
+      <div className="w-40 h-40 md:w-48 md:h-48 flex items-center justify-center overflow-hidden z-10 my-2">
+        <motion.img
+          key={charData.name}
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          src={charData.image}
+          alt={charData.name}
+          className="w-full h-full object-contain max-h-full max-w-full"
+          style={{
+            filter: `drop-shadow(0 0 8px ${player.color}88) drop-shadow(0 4px 8px rgba(0,0,0,0.9))`,
+          }}
+        />
+      </div>
 
       {/* Character name */}
       <motion.div
