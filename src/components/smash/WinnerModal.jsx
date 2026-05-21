@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import anime from 'animejs/lib/anime.es.js';
 import SmashButton from './SmashButton';
 
 function useConfetti(active) {
@@ -11,58 +11,72 @@ function useConfetti(active) {
     if (!active || !canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
 
-    const COLORS = ['#FFD700', '#FF6B6B', '#4ECDC4', '#9D65C9', '#3bb9ff', '#fff', '#ff8c00'];
-    const COUNT = 180;
+    const resize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
+
+    resize();
+
+    const COLORS = ['#FFD700', '#FF6B6B', '#4ECDC4', '#9D65C9', '#3BB9FF', '#FFFFFF', '#FF8C00'];
+    const COUNT = 220;
 
     particles.current = Array.from({ length: COUNT }, () => ({
       x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height * 0.5 - canvas.height * 0.3,
-      vx: (Math.random() - 0.5) * 6,
-      vy: Math.random() * 5 + 2,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      size: Math.random() * 8 + 4,
+      y: Math.random() * -canvas.height * 0.3,
+      vx: (Math.random() - 0.5) * 7,
+      vy: Math.random() * 4 + 3,
+      size: Math.random() * 10 + 5,
       rotation: Math.random() * 360,
-      rotSpeed: (Math.random() - 0.5) * 8,
-      shape: Math.random() > 0.5 ? 'rect' : 'circle',
+      rotSpeed: (Math.random() - 0.5) * 10,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
+      shape: Math.random() > 0.45 ? 'rect' : 'circle',
       alpha: 1,
-      decay: Math.random() * 0.008 + 0.004,
+      decay: Math.random() * 0.01 + 0.006,
     }));
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      let alive = false;
-      for (const p of particles.current) {
-        if (p.alpha <= 0) continue;
-        alive = true;
+      let activeParticle = false;
+
+      for (const particle of particles.current) {
+        if (particle.alpha <= 0) continue;
+        activeParticle = true;
+
         ctx.save();
-        ctx.globalAlpha = p.alpha;
-        ctx.fillStyle = p.color;
-        ctx.translate(p.x, p.y);
-        ctx.rotate((p.rotation * Math.PI) / 180);
-        if (p.shape === 'rect') {
-          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.5);
+        ctx.globalAlpha = particle.alpha;
+        ctx.fillStyle = particle.color;
+        ctx.translate(particle.x, particle.y);
+        ctx.rotate((particle.rotation * Math.PI) / 180);
+
+        if (particle.shape === 'rect') {
+          ctx.fillRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size * 0.5);
         } else {
           ctx.beginPath();
-          ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+          ctx.arc(0, 0, particle.size / 2, 0, Math.PI * 2);
           ctx.fill();
         }
+
         ctx.restore();
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vy += 0.12;
-        p.rotation += p.rotSpeed;
-        p.alpha -= p.decay;
-        p.vx *= 0.99;
+
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.vy += 0.16;
+        particle.rotation += particle.rotSpeed;
+        particle.vx *= 0.98;
+        particle.alpha -= particle.decay;
       }
-      if (alive) rafRef.current = requestAnimationFrame(draw);
+
+      if (activeParticle) rafRef.current = requestAnimationFrame(draw);
     };
+
     rafRef.current = requestAnimationFrame(draw);
+    window.addEventListener('resize', resize);
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      window.removeEventListener('resize', resize);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
   }, [active]);
@@ -70,111 +84,336 @@ function useConfetti(active) {
   return canvasRef;
 }
 
-export default function WinnerModal({ winnerName, winnerColor = '#ffcc00', onRestart }) {
+export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRestart }) {
   const canvasRef = useConfetti(true);
+  const overlayRef = useRef(null);
+  const modalRef = useRef(null);
+  const trophyRef = useRef(null);
+  const winnerRef = useRef(null);
+  const buttonRef = useRef(null);
+  const burstRef = useRef(null);
+  const ringRef = useRef(null);
+  const sparkRefs = useRef([]);
+  sparkRefs.current = [];
+
+  const setSparkRef = (element) => {
+    if (element && !sparkRefs.current.includes(element)) {
+      sparkRefs.current.push(element);
+    }
+  };
+
+  useEffect(() => {
+    if (!overlayRef.current || !modalRef.current) return;
+
+    const intro = anime.timeline({ easing: 'easeOutExpo' });
+
+    intro
+      .add(
+        {
+          targets: overlayRef.current,
+          opacity: [0, 1],
+          duration: 260,
+        },
+        0,
+      )
+      .add(
+        {
+          targets: burstRef.current,
+          scale: [0.5, 1.18],
+          opacity: [0, 0.55, 0],
+          duration: 1100,
+          easing: 'easeOutQuad',
+        },
+        0,
+      )
+      .add(
+        {
+          targets: ringRef.current,
+          scale: [0.7, 1],
+          opacity: [0, 1],
+          duration: 730,
+          easing: 'easeOutBack',
+        },
+        80,
+      )
+      .add(
+        {
+          targets: modalRef.current,
+          opacity: [0, 1],
+          scale: [0.72, 1.02, 1],
+          rotateY: ['20deg', '0deg'],
+          duration: 840,
+        },
+        0,
+      )
+      .add(
+        {
+          targets: trophyRef.current,
+          translateY: [52, 0],
+          rotate: ['-90deg', '18deg', '0deg'],
+          scale: [0.44, 1.14, 1],
+          opacity: [0, 1],
+          duration: 920,
+          elasticity: 700,
+        },
+        '-=640',
+      )
+      .add(
+        {
+          targets: winnerRef.current,
+          translateY: [24, 0],
+          opacity: [0, 1],
+          letterSpacing: ['0.95em', '0.14em'],
+          duration: 740,
+          easing: 'easeOutQuart',
+        },
+        '-=520',
+      )
+      .add(
+        {
+          targets: buttonRef.current,
+          opacity: [0, 1],
+          translateY: [22, 0],
+          scale: [0.92, 1],
+          duration: 620,
+          easing: 'easeOutBack',
+        },
+        '-=360',
+      )
+      .add(
+        {
+          targets: sparkRefs.current,
+          opacity: [0, 1, 0],
+          scale: [0.4, 1.05, 0.8],
+          translateY: [-26, 0, -10],
+          duration: 950,
+          delay: anime.stagger(80),
+          easing: 'easeOutSine',
+        },
+        '-=800',
+      );
+
+    const spin = anime({
+      targets: ringRef.current,
+      rotate: '1turn',
+      duration: 14000,
+      easing: 'linear',
+      loop: true,
+    });
+
+    return () => {
+      intro.pause();
+      spin.pause();
+      anime.remove([
+        overlayRef.current,
+        modalRef.current,
+        trophyRef.current,
+        winnerRef.current,
+        buttonRef.current,
+        burstRef.current,
+        ringRef.current,
+        ...sparkRefs.current,
+      ]);
+    };
+  }, [winnerColor]);
+
+  useEffect(() => {
+    const modal = modalRef.current;
+    const overlay = overlayRef.current;
+    if (!modal || !overlay) return;
+
+    const handleMove = (event) => {
+      const rect = modal.getBoundingClientRect();
+      const x = (event.clientX - rect.left - rect.width / 2) / rect.width;
+      const y = (event.clientY - rect.top - rect.height / 2) / rect.height;
+
+      anime({
+        targets: modal,
+        rotateY: `${x * 10}deg`,
+        rotateX: `${-y * 8}deg`,
+        translateX: `${x * 6}px`,
+        translateY: `${y * 4}px`,
+        duration: 280,
+        easing: 'easeOutQuad',
+      });
+
+      anime({
+        targets: burstRef.current,
+        translateX: `${x * 40}px`,
+        translateY: `${y * 30}px`,
+        duration: 300,
+        easing: 'easeOutQuad',
+      });
+
+      overlay.style.backgroundPosition = `${50 + x * 8}% ${45 + y * 6}%`;
+    };
+
+    const reset = () => {
+      anime({
+        targets: modal,
+        rotateY: '0deg',
+        rotateX: '0deg',
+        translateX: '0px',
+        translateY: '0px',
+        duration: 500,
+        easing: 'easeOutQuad',
+      });
+      anime({
+        targets: burstRef.current,
+        translateX: '0px',
+        translateY: '0px',
+        duration: 500,
+        easing: 'easeOutQuad',
+      });
+      overlay.style.backgroundPosition = '50% 45%';
+    };
+
+    modal.addEventListener('mousemove', handleMove);
+    modal.addEventListener('mouseleave', reset);
+
+    return () => {
+      modal.removeEventListener('mousemove', handleMove);
+      modal.removeEventListener('mouseleave', reset);
+    };
+  }, []);
 
   return (
     <>
-      {/* Confetti canvas */}
       <canvas
         ref={canvasRef}
         className="fixed inset-0 pointer-events-none"
         style={{ zIndex: 210 }}
       />
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+      <div
+        ref={overlayRef}
         className="fixed inset-0 flex items-center justify-center"
-        style={{ zIndex: 200, background: 'rgba(0,0,0,0.82)' }}
+        style={{
+          zIndex: 200,
+          opacity: 0,
+          background: 'radial-gradient(circle at top, rgba(255,210,80,0.08), transparent 28%), radial-gradient(circle at 35% 22%, rgba(255,255,255,0.08), transparent 22%), rgba(6,5,18,0.92)',
+          backgroundSize: '240% 240%',
+          backgroundPosition: '50% 45%',
+        }}
       >
-        {/* Big radial light burst behind modal */}
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1.5, opacity: 0.35 }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
-          className="absolute rounded-full pointer-events-none"
+        <div
+          ref={burstRef}
+          className="absolute pointer-events-none"
           style={{
-            width: '600px',
-            height: '600px',
-            background: 'radial-gradient(ellipse at center, #ffcc00 0%, transparent 70%)',
+            top: '12%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '760px',
+            height: '760px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle at center, rgba(255,205,40,0.24), rgba(255,205,40,0.04) 40%, transparent 70%)',
+            opacity: 0,
+            filter: 'blur(20px)',
           }}
         />
 
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0, rotateX: -30 }}
-          animate={{ scale: 1, opacity: 1, rotateX: 0 }}
-          transition={{ type: 'spring', stiffness: 260, damping: 22, delay: 0.1 }}
-          className="relative text-center px-10 py-12 rounded-lg mx-4 max-w-lg w-full"
+        <div
+          ref={ringRef}
+          className="absolute pointer-events-none"
           style={{
-            background: 'linear-gradient(160deg, rgba(5,4,15,0.99) 0%, rgba(20,16,0,0.98) 100%)',
-            border: '3px solid #ffcc00',
-            animation: 'winnerBgPulse 2s infinite alternate',
-            zIndex: 5,
+            width: '420px',
+            height: '420px',
+            borderRadius: '50%',
+            border: `1px solid ${winnerColor}33`,
+            boxShadow: `0 0 120px ${winnerColor}1a`,
+            opacity: 0,
+          }}
+        />
+
+        <div
+          ref={modalRef}
+          className="relative text-center px-10 py-12 rounded-[32px] mx-4 max-w-xl w-full"
+          style={{
+            background: 'linear-gradient(160deg, rgba(6,5,18,0.98) 0%, rgba(21,17,33,0.98) 100%)',
+            border: '1px solid rgba(255,205,40,0.25)',
+            boxShadow: '0 32px 140px rgba(0,0,0,0.42)',
+            transformStyle: 'preserve-3d',
+            perspective: '1400px',
+            backdropFilter: 'blur(18px)',
+            opacity: 0,
           }}
         >
-          {/* Top gold bar */}
-          <div className="absolute top-0 left-0 w-full h-1.5 rounded-t-lg" style={{ background: 'linear-gradient(90deg, transparent, #ffcc00, transparent)' }} />
-
-          {/* Trophy */}
-          <motion.div
-            initial={{ scale: 0, rotate: -30 }}
-            animate={{ scale: 1, rotate: 0 }}
-            transition={{ type: 'spring', stiffness: 300, delay: 0.3 }}
-            className="text-7xl mb-4 leading-none"
-          >
-            🏆
-          </motion.div>
-
-          {/* Winner label */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="font-bebas text-2xl tracking-widest text-white/50 uppercase mb-1"
-          >
-            ¡Ganador!
-          </motion.div>
-
-          {/* Winner name */}
-          <motion.h2
-            initial={{ opacity: 0, scale: 0.7 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5, type: 'spring', stiffness: 250 }}
-            className="font-smash uppercase mb-2"
+          <div
+            className="absolute inset-0 rounded-[32px] pointer-events-none"
             style={{
-              fontSize: 'clamp(2.5rem, 8vw, 4rem)',
-              color: '#ffcc00',
-              animation: 'winnerBlink 1.5s infinite',
-              letterSpacing: '4px',
+              background: 'radial-gradient(circle at top right, rgba(255,255,255,0.09), transparent 22%), radial-gradient(circle at 20% 20%, rgba(255,205,40,0.07), transparent 14%)',
+              mixBlendMode: 'screen',
             }}
-          >
-            {winnerName}
-          </motion.h2>
+          />
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.7 }}
-            className="font-bebas text-xl tracking-widest text-white/40 uppercase mb-8"
-          >
-            gana el Gun Game
-          </motion.p>
+          <div className="absolute inset-x-0 top-0 h-1.5 rounded-t-[32px]" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,205,40,0.88), transparent)' }} />
 
-          {/* Decorative line */}
-          <div className="w-full h-px mb-8" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,204,0,0.5), transparent)' }} />
+          <div className="relative z-10 flex flex-col items-center gap-4">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span className="px-3 py-1 rounded-full text-[0.72rem] tracking-[0.24em] uppercase text-white/70 bg-white/5 border border-white/10">
+                Victoria
+              </span>
+            </div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.9 }}
-          >
+            <div
+              ref={trophyRef}
+              className="text-[5.5rem] mb-4 leading-none relative"
+              style={{
+                opacity: 0,
+                color: winnerColor,
+                textShadow: '0 0 26px rgba(255, 201, 56, 0.28)',
+              }}
+            >
+              <span className="inline-flex items-center justify-center">🏆</span>
+            </div>
+
+            <div className="relative z-10 w-full">
+              <div className="font-bebas text-[1.05rem] tracking-[0.35em] text-white/60 uppercase mb-2">
+                ¡Ganador!
+              </div>
+
+              <h2
+                ref={winnerRef}
+                className="font-smash uppercase mb-2"
+                style={{
+                  fontSize: 'clamp(3rem, 7vw, 4.8rem)',
+                  color: '#ffdc6f',
+                  textShadow: '0 0 32px rgba(255,215,96,0.3)',
+                  opacity: 0,
+                  letterSpacing: '0.12em',
+                }}
+              >
+                {winnerName}
+              </h2>
+
+              <p className="font-bebas text-lg tracking-[0.22em] text-white/40 uppercase mb-8">
+                domina el campo de batalla
+              </p>
+            </div>
+          </div>
+
+          <div className="relative z-10">
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2 grid grid-cols-3 gap-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <span
+                  key={index}
+                  ref={setSparkRef}
+                  className="block rounded-full bg-white/80"
+                  style={{ width: 12, height: 12, opacity: 0, transform: 'translateY(-4px)' }}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="w-full h-px mb-8" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,205,40,0.4), transparent)' }} />
+
+          <div ref={buttonRef} className="relative z-10 opacity-0">
             <SmashButton onClick={onRestart} size="large" variant="gold">
               REINICIAR
             </SmashButton>
-          </motion.div>
-        </motion.div>
-      </motion.div>
+          </div>
+        </div>
+      </div>
     </>
   );
 }
