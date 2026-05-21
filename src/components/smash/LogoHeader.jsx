@@ -2,13 +2,34 @@ import { motion } from 'framer-motion';
 import KTBLANCO from '@/components/img/KTBLANCO.png';
 
 export default function LogoHeader() {
+  const handleClick = () => {
+    try {
+      window.dispatchEvent(new CustomEvent('smash:goToMenu'));
+    } catch (e) {
+      // fallback: reload to menu
+      window.location.reload();
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleClick();
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, x: -20 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.5, delay: 0.2 }}
       className="fixed top-4 left-4 flex items-center gap-3"
-      style={{ zIndex: 100 }}
+      style={{ zIndex: 100, cursor: 'pointer' }}
+      role="button"
+      tabIndex={0}
+      onClick={handleClick}
+      onKeyDown={handleKeyDown}
+      title="Ir al menú principal"
     >
       <img
         src="https://cdn2.steamgriddb.com/logo_thumb/0498cae30ceca924f76c2b0832c14f34.png"

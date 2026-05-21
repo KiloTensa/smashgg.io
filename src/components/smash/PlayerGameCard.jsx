@@ -113,6 +113,7 @@ export default function PlayerGameCard({ player, playerIndex, onWinRound }) {
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: 'spring', stiffness: 300, damping: 20 }}
         src={charData.image}
+        loading="eager"
         alt={charData.name}
         className="w-36 md:w-44 h-auto"
         style={{

@@ -8,6 +8,7 @@ import SelectionScreen from '@/components/smash/SelectionScreen';
 import GameScreen from '@/components/smash/GameScreen';
 import WinnerModal from '@/components/smash/WinnerModal';
 import smashCharacters, { DEFAULT_PLAYER_COLORS, STORAGE_KEY } from '@/lib/smashCharacters';
+import { preloadImages } from '@/lib/preloadImages';
 
 function getInitialState() {
   const saved = localStorage.getItem(STORAGE_KEY);
@@ -52,9 +53,24 @@ export default function SmashGunGame() {
     return () => window.removeEventListener('beforeunload', handleUnload);
   }, [gameState]);
 
+  // Start preloading character images as soon as the component mounts
+  // so transitions to selection/game screens are instant.
+  useEffect(() => {
+    const urls = smashCharacters.map(c => c.image);
+    preloadImages(urls);
+  }, []);
+
   const goToScreen = useCallback((screen) => {
     setGameState(prev => ({ ...prev, screen }));
   }, []);
+
+  // Listen for clicks on the global logo header to return to menu
+  useEffect(() => {
+    const handler = () => goToScreen('menu');
+    window.addEventListener('smash:goToMenu', handler);
+    return () => window.removeEventListener('smash:goToMenu', handler);
+  }, [goToScreen]);
+
 
   // Menu handlers
   const handleStart = () => goToScreen('config');
@@ -118,6 +134,15 @@ export default function SmashGunGame() {
       });
     }
     state.currentSelectionPlayer = state.playerCount;
+    // Preload the images that were just selected for all players
+    try {
+      const selectedIndices = new Set();
+      state.players.forEach(p => p.characters.forEach(ci => selectedIndices.add(ci)));
+      const urls = Array.from(selectedIndices).map(i => smashCharacters[i]?.image).filter(Boolean);
+      if (urls.length) preloadImages(urls);
+    } catch (e) {
+      // ignore
+    }
   };
 
   // Selection handlers
@@ -143,6 +168,19 @@ export default function SmashGunGame() {
     setGameState(prev => {
       const newState = JSON.parse(JSON.stringify(prev));
       const player = newState.players[playerIndex];
+
+      // Preload the next character image (if any) so the transition is instant
+      const nextIndex = player.currentCharIndex + 1;
+      try {
+        const nextCharIdx = player.characters[nextIndex];
+        if (typeof nextCharIdx === 'number') {
+          const url = smashCharacters[nextCharIdx]?.image;
+          if (url) preloadImages([url]);
+        }
+      } catch (e) {
+        // ignore
+      }
+
       player.currentCharIndex++;
 
       if (player.currentCharIndex >= player.characters.length) {
