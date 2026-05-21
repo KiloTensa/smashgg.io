@@ -11,13 +11,20 @@ function useConfetti(active) {
     if (!active || !canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
+    let resizeTimeout;
 
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     };
 
+    const handleResize = () => {
+      if (resizeTimeout) cancelAnimationFrame(resizeTimeout);
+      resizeTimeout = requestAnimationFrame(resize);
+    };
+
     resize();
+    window.addEventListener('resize', handleResize);
 
     const COLORS = ['#FFD700', '#FF6B6B', '#4ECDC4', '#9D65C9', '#3BB9FF', '#FFFFFF', '#FF8C00'];
     const COUNT = 220;
@@ -40,7 +47,9 @@ function useConfetti(active) {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       let activeParticle = false;
 
-      for (const particle of particles.current) {
+      const len = particles.current.length;
+      for (let i = 0; i < len; i++) {
+        const particle = particles.current[i];
         if (particle.alpha <= 0) continue;
         activeParticle = true;
 
@@ -72,11 +81,11 @@ function useConfetti(active) {
     };
 
     rafRef.current = requestAnimationFrame(draw);
-    window.addEventListener('resize', resize);
 
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
-      window.removeEventListener('resize', resize);
+      if (resizeTimeout) cancelAnimationFrame(resizeTimeout);
+      window.removeEventListener('resize', handleResize);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
   }, [active]);
@@ -93,8 +102,11 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
   const buttonRef = useRef(null);
   const burstRef = useRef(null);
   const ringRef = useRef(null);
+  const shineRef = useRef(null); // Ref para la capa del reflejo lineal de luz
   const sparkRefs = useRef([]);
   sparkRefs.current = [];
+
+  const isIntroFinished = useRef(false);
 
   const setSparkRef = (element) => {
     if (element && !sparkRefs.current.includes(element)) {
@@ -105,117 +117,192 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
   useEffect(() => {
     if (!overlayRef.current || !modalRef.current) return;
 
-    const intro = anime.timeline({ easing: 'easeOutExpo' });
+    anime.remove([
+      overlayRef.current, modalRef.current, trophyRef.current,
+      winnerRef.current, buttonRef.current, burstRef.current,
+      ringRef.current, shineRef.current, ...sparkRefs.current,
+    ]);
 
-    intro
+    isIntroFinished.current = false;
+
+    const victoryTimeline = anime.timeline({ autoplay: true });
+
+    victoryTimeline
+      // 1. EL APAGÓN TÁCTICO
       .add({
         targets: overlayRef.current,
         opacity: [0, 1],
-        duration: 260,
+        backgroundColor: ['rgba(0,0,0,1)', 'rgba(6,5,18,0.92)'],
+        backdropFilter: ['blur(0px)', 'blur(20px)'],
+        duration: 400,
+        easing: 'easeOutExpo',
       }, 0)
-      .add({
-        targets: burstRef.current,
-        scale: [0.5, 1.18],
-        opacity: [0, 0.55, 0],
-        duration: 1100,
-        easing: 'easeOutQuad',
-      }, 0)
-      .add({
-        targets: ringRef.current,
-        scale: [0.7, 1],
-        opacity: [0, 1],
-        duration: 730,
-        easing: 'easeOutBack',
-      }, 80)
+
+      // 2. EL METEORO (Panel estrellándose)
       .add({
         targets: modalRef.current,
         opacity: [0, 1],
-        scale: [0.72, 1.02, 1],
-        rotateY: ['20deg', '0deg'],
-        duration: 840,
-      }, 0)
+        scale: [4, 1],
+        translateY: [-400, 0],
+        rotateZ: [-10, 0],
+        duration: 450,
+        easing: 'easeInCubic',
+      }, 100)
+
+      // 3. TERREMOTO DE CÁMARA (Camera Shake)
+      .add({
+        targets: modalRef.current,
+        translateX: [
+          { value: 20, duration: 40 }, { value: -20, duration: 40 },
+          { value: 15, duration: 40 }, { value: -15, duration: 40 },
+          { value: 10, duration: 40 }, { value: -10, duration: 40 },
+          { value: 0, duration: 50 }
+        ],
+        translateY: [
+          { value: 15, duration: 40 }, { value: -15, duration: 40 },
+          { value: 10, duration: 40 }, { value: -10, duration: 40 },
+          { value: 0, duration: 50 }
+        ],
+        easing: 'easeInOutQuad',
+      }, 550)
+
+      // 4. LA ONDA EXPANSIVA Y DESTELLO DE LUZ DEL REFLEJO (Destello rápido al impactar)
+      .add({
+        targets: burstRef.current,
+        scale: [0, 4.5],
+        opacity: [1, 0],
+        duration: 800,
+        easing: 'easeOutExpo',
+      }, 550)
+      .add({
+        targets: ringRef.current,
+        scale: [0, 3],
+        opacity: [1, 0],
+        borderWidth: ['20px', '1px'],
+        duration: 700,
+        easing: 'easeOutCirc',
+      }, 550)
+      .add({
+        targets: shineRef.current,
+        opacity: [0, 1, 0],
+        backgroundPosition: ['-200% 0%', '200% 0%'], // Barrido cinemático ultra veloz en la entrada
+        duration: 800,
+        easing: 'easeOutQuad'
+      }, 550)
+      
+      // EXPLOSIÓN DE ESCOMBROS
+      .add({
+        targets: sparkRefs.current,
+        opacity: [1, 0],
+        scale: [0, 2.5],
+        translateX: () => anime.random(-250, 250),
+        translateY: () => anime.random(-150, 250),
+        duration: 700,
+        easing: 'easeOutExpo',
+      }, 550)
+
+      // 5. TALADRO DE TROFEO
       .add({
         targets: trophyRef.current,
-        translateY: [52, 0],
-        rotate: ['-90deg', '18deg', '0deg'],
-        scale: [0.44, 1.14, 1],
         opacity: [0, 1],
-        duration: 920,
-        elasticity: 700,
-      }, '-=640')
+        scale: [3, 1],
+        rotate: ['-1080deg', '0deg'],
+        duration: 900,
+        easing: 'easeOutExpo',
+      }, 700)
+
+      // 6. ENCENDIDO ELÉCTRICO NEÓN (Nombre del ganador)
       .add({
         targets: winnerRef.current,
-        translateY: [24, 0],
-        opacity: [0, 1],
-        letterSpacing: ['0.95em', '0.14em'],
-        duration: 740,
-        easing: 'easeOutQuart',
-      }, '-=520')
+        opacity: [0, 1, 0.2, 1, 0, 1],
+        scale: [1.2, 1],
+        filter: ['brightness(4) blur(10px)', 'brightness(1) blur(0px)'],
+        duration: 800,
+        easing: 'steps(5)',
+      }, 900)
+
+      // 7. CORTE LATERAL (Botón)
       .add({
         targets: buttonRef.current,
         opacity: [0, 1],
-        translateY: [22, 0],
-        scale: [0.92, 1],
-        duration: 620,
+        translateX: [150, 0],
+        skewX: ['-35deg', '0deg'],
+        duration: 600,
         easing: 'easeOutBack',
-      }, '-=360')
-      .add({
-        targets: sparkRefs.current,
-        opacity: [0, 1, 0],
-        scale: [0.4, 1.05, 0.8],
-        translateY: [-26, 0, -10],
-        duration: 950,
-        delay: anime.stagger(80),
-        easing: 'easeOutSine',
-      }, '-=800');
+      }, 1200);
 
-    const spin = anime({
+    // Reposo Activo
+    const energyPulse = anime({
       targets: ringRef.current,
-      rotate: '1turn',
-      duration: 14000,
-      easing: 'linear',
+      scale: [1, 1.05],
+      opacity: [0, 0.3],
+      direction: 'alternate',
       loop: true,
+      duration: 1500,
+      easing: 'easeInOutSine',
+      autoplay: false,
     });
 
+    victoryTimeline.complete = () => {
+      isIntroFinished.current = true;
+      energyPulse.play();
+      if (shineRef.current) shineRef.current.style.opacity = '1'; // Fijar opacidad para la interacción del mouse
+    };
+
     return () => {
-      intro.pause();
-      spin.pause();
-      anime.remove([
-        overlayRef.current,
-        modalRef.current,
-        trophyRef.current,
-        winnerRef.current,
-        buttonRef.current,
-        burstRef.current,
-        ringRef.current,
-        ...sparkRefs.current,
-      ]);
+      victoryTimeline.pause();
+      energyPulse.pause();
     };
   }, [winnerColor]);
 
+  // Manejo del Movimiento de Perspectiva y Mapeo Dinámico del Reflejo Lineal
   useEffect(() => {
     const modal = modalRef.current;
     const overlay = overlayRef.current;
     const burst = burstRef.current;
+    const shine = shineRef.current;
     if (!modal || !overlay) return;
 
-    // OPTIMIZADO: Mutación directa de estilos sin instanciar Anime.js en bucle masivo
-    const handleMove = (event) => {
-      const rect = modal.getBoundingClientRect();
-      const x = (event.clientX - rect.left - rect.width / 2) / rect.width;
-      const y = (event.clientY - rect.top - rect.height / 2) / rect.height;
+    let ticking = false;
 
-      modal.style.transform = `perspective(1400px) rotateY(${x * 10}deg) rotateX(${-y * 8}deg) translateX(${x * 6}px) translateY(${y * 4}px)`;
-      if (burst) {
-        burst.style.transform = `translateX(calc(-50% + ${x * 40}px)) translateY(${y * 30}px)`;
-      }
-      overlay.style.backgroundPosition = `${50 + x * 8}% ${45 + y * 6}%`;
+    const handleMove = (event) => {
+      if (!isIntroFinished.current || ticking) return;
+
+      window.requestAnimationFrame(() => {
+        const rect = modal.getBoundingClientRect();
+        // Coordenadas normalizadas entre -0.5 y 0.5 basadas en el centro del modal
+        const x = (event.clientX - rect.left - rect.width / 2) / rect.width;
+        const y = (event.clientY - rect.top - rect.height / 2) / rect.height;
+
+        // Rotación 3D del panel
+        modal.style.transform = `perspective(1400px) rotateY(${x * 12}deg) rotateX(${-y * 10}deg) translateX(${x * 8}px) translateY(${y * 5}px)`;
+        
+        // Movimiento del destello circular de fondo
+        if (burst) {
+          burst.style.transform = `translateX(calc(-50% + ${x * 40}px)) translateY(${y * 30}px)`;
+        }
+        
+        // 🔮 INTERACCIÓN DEL REFLEJO LINEAL (Metal/Cristal Pulido)
+        // Mapea la posición X del ratón a la posición del gradiente de fondo (de 0% a 100%)
+        if (shine) {
+          const percentagePosition = 50 + (x * 120); // El rango dinámico cruza de izquierda a derecha perfectamente
+          shine.style.backgroundPosition = `${percentagePosition}% 50%`;
+        }
+
+        overlay.style.backgroundPosition = `${50 + x * 10}% ${45 + y * 8}%`;
+        ticking = false;
+      });
+      ticking = true;
     };
 
     const reset = () => {
+      if (!isIntroFinished.current) return;
       modal.style.transform = 'perspective(1400px) rotateY(0deg) rotateX(0deg) translateX(0px) translateY(0px)';
       if (burst) {
         burst.style.transform = 'translateX(-50%) translateY(0px)';
+      }
+      if (shine) {
+        shine.style.backgroundPosition = '50% 50%'; // Regresa al centro suavemente
       }
       overlay.style.backgroundPosition = '50% 45%';
     };
@@ -231,11 +318,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
 
   return (
     <>
-      <canvas
-        ref={canvasRef}
-        className="fixed inset-0 pointer-events-none"
-        style={{ zIndex: 210 }}
-      />
+      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 210 }} />
 
       <div
         ref={overlayRef}
@@ -243,24 +326,26 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
         style={{
           zIndex: 200,
           opacity: 0,
-          background: 'radial-gradient(circle at top, rgba(255,210,80,0.08), transparent 28%), radial-gradient(circle at 35% 22%, rgba(255,255,255,0.08), transparent 22%), rgba(6,5,18,0.92)',
           backgroundSize: '240% 240%',
           backgroundPosition: '50% 45%',
+          willChange: 'backdrop-filter, opacity, background-color',
         }}
       >
         <div
           ref={burstRef}
-          className="absolute pointer-events-none transition-transform duration-300 ease-out"
+          className="absolute pointer-events-none"
           style={{
-            top: '12%',
+            top: '50%',
             left: '50%',
-            transform: 'translateX(-50%)',
-            width: '760px',
-            height: '760px',
+            transform: 'translate(-50%, -50%)',
+            width: '400px',
+            height: '400px',
             borderRadius: '50%',
-            background: 'radial-gradient(circle at center, rgba(255,205,40,0.24), rgba(255,205,40,0.04) 40%, transparent 70%)',
+            background: `radial-gradient(circle at center, ${winnerColor} 0%, transparent 60%)`,
             opacity: 0,
-            filter: 'blur(20px)',
+            filter: 'blur(30px)',
+            mixBlendMode: 'screen',
+            willChange: 'transform, opacity',
           }}
         />
 
@@ -268,100 +353,107 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
           ref={ringRef}
           className="absolute pointer-events-none"
           style={{
-            width: '420px',
-            height: '420px',
+            width: '200px',
+            height: '200px',
             borderRadius: '50%',
-            border: `1px solid ${winnerColor}33`,
-            boxShadow: `0 0 120px ${winnerColor}1a`,
+            border: `solid ${winnerColor}`,
             opacity: 0,
+            willChange: 'transform, opacity, border-width',
           }}
         />
 
+        {/* CONTENEDOR PRINCIPAL */}
         <div
           ref={modalRef}
-          className="relative text-center px-10 py-12 rounded-[32px] mx-4 max-w-xl w-full transition-transform duration-300 ease-out"
+          className="relative text-center px-10 py-12 rounded-[32px] mx-4 max-w-xl w-full overflow-hidden"
           style={{
             background: 'linear-gradient(160deg, rgba(6,5,18,0.98) 0%, rgba(21,17,33,0.98) 100%)',
-            border: '1px solid rgba(255,205,40,0.25)',
-            boxShadow: '0 32px 140px rgba(0,0,0,0.42)',
+            border: `2px solid ${winnerColor}88`,
+            boxShadow: `0 0 80px ${winnerColor}33, 0 32px 140px rgba(0,0,0,0.8)`,
             transformStyle: 'preserve-3d',
             perspective: '1400px',
             backdropFilter: 'blur(18px)',
             opacity: 0,
+            willChange: 'transform, opacity',
           }}
         >
+          {/* 💎 CAPA DEL REFLEJO LINEAL METÁLICO (Efecto Material Cristal/Placa Pulida) */}
           <div
-            className="absolute inset-0 rounded-[32px] pointer-events-none"
+            ref={shineRef}
+            className="absolute inset-0 pointer-events-none"
             style={{
-              background: 'radial-gradient(circle at top right, rgba(255,255,255,0.09), transparent 22%), radial-gradient(circle at 20% 20%, rgba(255,205,40,0.07), transparent 14%)',
-              mixBlendMode: 'screen',
+              // Gradiente diagonal ultra limpio con destello blanco/plata en el centro exacto
+              background: 'linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.0) 43%, rgba(255, 255, 255, 0.28) 49%, rgba(255, 255, 255, 0.73) 50%, rgba(255, 255, 255, 0.28) 51%, rgba(255, 255, 255, 0.0) 57%, transparent 65%)',
+              backgroundSize: '280% 100%',
+              backgroundPosition: '-200% 0%',
+              mixBlendMode: 'overlay', // Fusiona perfectamente la luz sobre las fuentes y texturas internas
+              zIndex: 5,
+              opacity: 0,
+              willChange: 'background-position, opacity',
             }}
           />
 
-          <div className="absolute inset-x-0 top-0 h-1.5 rounded-t-[32px]" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,205,40,0.88), transparent)' }} />
+          <div className="absolute inset-x-0 top-0 h-2 rounded-t-[32px]" style={{ background: `linear-gradient(90deg, transparent, ${winnerColor}, transparent)` }} />
 
           <div className="relative z-10 flex flex-col items-center gap-4">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <span className="px-3 py-1 rounded-full text-[0.72rem] tracking-[0.24em] uppercase text-white/70 bg-white/5 border border-white/10">
-                Victoria
+              <span className="px-4 py-1 rounded-full text-[0.8rem] font-bold tracking-[0.3em] uppercase" style={{ color: winnerColor, backgroundColor: `${winnerColor}15`, border: `1px solid ${winnerColor}44`}}>
+                VICTORIA ABSOLUTA
               </span>
             </div>
 
             <div
               ref={trophyRef}
-              className="text-[5.5rem] mb-4 leading-none relative"
+              className="text-[6rem] mb-4 leading-none relative"
               style={{
                 opacity: 0,
                 color: winnerColor,
-                textShadow: '0 0 26px rgba(255, 201, 56, 0.28)',
+                textShadow: `0 0 40px ${winnerColor}aa`,
+                willChange: 'transform, opacity',
               }}
             >
               <span className="inline-flex items-center justify-center">🏆</span>
             </div>
 
             <div className="relative z-10 w-full">
-              <div className="font-bebas text-[1.05rem] tracking-[0.35em] text-white/60 uppercase mb-2">
-                ¡Ganador!
-              </div>
-
               <h2
                 ref={winnerRef}
                 className="font-smash uppercase mb-2"
                 style={{
-                  fontSize: 'clamp(3rem, 7vw, 4.8rem)',
-                  color: '#ffdc6f',
-                  textShadow: '0 0 32px rgba(255,215,96,0.3)',
+                  fontSize: 'clamp(3.5rem, 8vw, 5.5rem)',
+                  color: '#ffffff',
+                  textShadow: `0 0 20px ${winnerColor}, 0 0 40px ${winnerColor}`,
                   opacity: 0,
-                  letterSpacing: '0.12em',
+                  willChange: 'transform, filter, opacity',
                 }}
               >
                 {winnerName}
               </h2>
 
-              <p className="font-bebas text-lg tracking-[0.22em] text-white/40 uppercase mb-8">
-                domina el campo de batalla
+              <p className="font-bebas text-xl tracking-[0.3em] text-white/50 uppercase mb-8">
+                Ha reclamado la gloria
               </p>
             </div>
           </div>
 
           <div className="relative z-10">
-            <div className="absolute -top-10 left-1/2 -translate-x-1/2 grid grid-cols-3 gap-3">
-              {Array.from({ length: 3 }).map((_, index) => (
+            <div className="absolute top-1/2 left-1/2">
+              {Array.from({ length: 8 }).map((_, index) => (
                 <span
                   key={index}
                   ref={setSparkRef}
-                  className="block rounded-full bg-white/80"
-                  style={{ width: 12, height: 12, opacity: 0, transform: 'translateY(-4px)' }}
+                  className="absolute rounded-full"
+                  style={{ width: 8, height: 8, backgroundColor: winnerColor, opacity: 0, willChange: 'transform, opacity' }}
                 />
               ))}
             </div>
           </div>
 
-          <div className="w-full h-px mb-8" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,205,40,0.4), transparent)' }} />
+          <div className="w-full h-px mb-8" style={{ background: `linear-gradient(90deg, transparent, ${winnerColor}88, transparent)` }} />
 
-          <div ref={buttonRef} className="relative z-10 opacity-0">
+          <div ref={buttonRef} className="relative z-10 opacity-0" style={{ willChange: 'transform, opacity' }}>
             <SmashButton onClick={onRestart} size="large" variant="gold">
-              REINICIAR
+              NUEVO COMBATE
             </SmashButton>
           </div>
         </div>
