@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import KTBLANCO from '@/components/img/KTBLANCO.png';
 
 export default function LogoHeader() {
   return (
@@ -20,7 +21,7 @@ export default function LogoHeader() {
         style={{ background: 'linear-gradient(to bottom, transparent, rgba(255,255,255,0.3), transparent)' }}
       />
       <img
-        src="./src/components/img/KTBLANCO.png"
+        src={KTBLANCO}
         alt="KT566"
         className="h-9 md:h-11 w-auto hidden md:block"
         style={{ filter: 'invert(0) grayscale(1) drop-shadow(0 0 8px rgba(255,255,255,0.7))', opacity: 0.85 }}
