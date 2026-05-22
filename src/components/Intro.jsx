@@ -6,6 +6,7 @@ export default function Intro({ onFinish }) {
   const containerRef = useRef(null);
   const svgRef = useRef(null);
   const textRef = useRef(null);
+  const subTextRef = useRef(null);
 
   useEffect(() => {
     const paths = document.querySelectorAll('.smash-path');
@@ -21,6 +22,11 @@ export default function Intro({ onFinish }) {
     if (textRef.current) {
       textRef.current.style.opacity = 0;
       textRef.current.style.transform = 'translateY(10px)';
+    }
+
+    if (subTextRef.current) {
+      subTextRef.current.style.opacity = 0;
+      subTextRef.current.style.transform = 'translateY(10px)';
     }
 
     const tl = anime.timeline({
@@ -61,10 +67,11 @@ export default function Intro({ onFinish }) {
         easing: 'easeOutExpo'
       }, '-=250')
       .add({
-        targets: textRef.current,
+        targets: [textRef.current, subTextRef.current],
         opacity: [0, 1],
         translateY: ['10px', '0px'],
         duration: 700,
+        delay: anime.stagger(200),
         easing: 'easeOutCubic'
       }, '-=300')
       .add({
@@ -81,7 +88,7 @@ export default function Intro({ onFinish }) {
         easing: 'easeInOutExpo'
       }, '-=0')
       .add({
-        targets: textRef.current,
+        targets: [textRef.current, subTextRef.current],
         opacity: [1, 0],
         translateY: ['0px', '-15px'],
         duration: 600,
@@ -98,6 +105,7 @@ export default function Intro({ onFinish }) {
       tl.pause();
       anime.remove('.smash-path');
       if (svgRef.current) anime.remove(svgRef.current);
+      if (subTextRef.current) anime.remove(subTextRef.current);
       if (textRef.current) anime.remove(textRef.current);
       if (overlayRef.current) anime.remove(overlayRef.current);
     };
@@ -161,6 +169,40 @@ export default function Intro({ onFinish }) {
         >
           SMASH GG
         </h1>
+
+        <p 
+          ref={subTextRef}
+          style={{
+            margin: 0,
+            marginTop: '-12px', // Compensa el gap del contenedor para estar más cerca
+            color: 'rgba(255, 255, 255, 0.35)',
+            fontSize: '11px',
+            fontWeight: '300',
+            fontFamily: 'sans-serif',
+            textTransform: 'uppercase',
+            letterSpacing: '0.6em',
+            willChange: 'opacity, transform'
+          }}
+        >
+          By KiloTensa
+        </p>
+      </div>
+
+      <div 
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '32px',
+          color: 'rgba(255, 255, 255, 0.15)',
+          fontSize: '10px',
+          letterSpacing: '0.4em',
+          textTransform: 'uppercase',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          zIndex: 10000
+        }}
+      >
+        By KiloTensa - 2026
       </div>
     </div>
   );

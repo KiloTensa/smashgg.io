@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 
-export default function CharacterCard({ character, index, dots, onClick }) {
+function CharacterCard({ character, index, dots, onClick }) {
   const isSelected = dots && dots.length > 0;
   const [flash, setFlash] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   const handleClick = () => {
     setFlash(true);
@@ -40,7 +41,6 @@ export default function CharacterCard({ character, index, dots, onClick }) {
         opacity: 0,
       }}
     >
-      {/* Top corner accent */}
       {isSelected && (
         <div
           className="absolute top-0 left-0 w-full h-1 rounded-t"
@@ -48,7 +48,6 @@ export default function CharacterCard({ character, index, dots, onClick }) {
         />
       )}
 
-      {/* Selection dots */}
       {isSelected && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 flex gap-1.5" style={{ zIndex: 5 }}>
           {dots.map((dot, i) => (
@@ -65,7 +64,6 @@ export default function CharacterCard({ character, index, dots, onClick }) {
         </div>
       )}
 
-      {/* Flash effect (Sin AnimatePresence, directo por CSS) */}
       {flash && (
         <div
           className="absolute inset-0 rounded pointer-events-none bg-white"
@@ -79,7 +77,7 @@ export default function CharacterCard({ character, index, dots, onClick }) {
 <img
   src={character.image}
   alt={character.name}
-  className="w-20 h-auto mb-1 relative"
+  className={`w-20 h-auto mb-1 relative transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
   style={{
     filter: isSelected
       ? `drop-shadow(0 0 6px ${primaryColor}) drop-shadow(0 2px 4px rgba(0,0,0,0.9))`
@@ -87,7 +85,8 @@ export default function CharacterCard({ character, index, dots, onClick }) {
     transition: 'filter 0.2s',
     zIndex: 2,
   }}
-  decoding="sync" 
+  decoding="async"
+  onLoad={() => setIsLoaded(true)}
 />
       <div
         className="text-center font-smash text-xs uppercase tracking-wide w-full"
@@ -103,3 +102,5 @@ export default function CharacterCard({ character, index, dots, onClick }) {
     </div>
   );
 }
+
+export default memo(CharacterCard);

@@ -1,7 +1,17 @@
 import { useEffect, useRef } from 'react';
 
-export default function Particles() {
+export default function Particles({ leaderColor, isFinalStretch }) {
   const canvasRef = useRef(null);
+  const leaderColorRef = useRef(leaderColor);
+  const isFinalStretchRef = useRef(isFinalStretch);
+
+  useEffect(() => {
+    leaderColorRef.current = leaderColor;
+  }, [leaderColor]);
+
+  useEffect(() => {
+    isFinalStretchRef.current = isFinalStretch;
+  }, [isFinalStretch]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -23,7 +33,6 @@ export default function Particles() {
       { color: 'rgba(160,80,255,0.6)',  shadow: 'rgba(160,80,255,0.5)',  size: [1, 3]  },
     ];
 
-    // Mismo comportamiento: 60 partículas flotantes
     const floatingParticles = Array.from({ length: 60 }, () => {
       const cfg = CONFIG[Math.floor(Math.random() * CONFIG.length)];
       return {
@@ -37,7 +46,6 @@ export default function Particles() {
       };
     });
 
-    // Mismo comportamiento: 80 estrellas estáticas titilando
     const stars = Array.from({ length: 80 }, () => ({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
@@ -52,7 +60,8 @@ export default function Particles() {
       tick++;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Dibujar estrellas fijas
+      const speedMultiplier = isFinalStretchRef.current ? 3.5 : 1;
+
       stars.forEach(s => {
         const alpha = s.baseOpacity + Math.sin(tick * s.speed + s.phase) * 0.3;
         ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.1, Math.min(1, alpha))})`;
@@ -61,10 +70,9 @@ export default function Particles() {
         ctx.fill();
       });
 
-      // Dibujar partículas flotantes (sin sobrecargar el DOM)
-      floatingParticles.forEach(p => {
-        p.y += p.vy;
-        p.x += p.vx;
+      floatingParticles.forEach((p, idx) => {
+        p.y += p.vy * speedMultiplier;
+        p.x += p.vx * speedMultiplier;
 
         if (p.y < -10) {
           p.y = canvas.height + 10;
@@ -72,10 +80,19 @@ export default function Particles() {
         }
         if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
 
+
+        let drawColor = p.color;
+        let drawShadow = p.shadowColor;
+        
+        if (leaderColorRef.current && idx % 4 === 0) {
+            drawColor = leaderColorRef.current;
+            drawShadow = leaderColorRef.current;
+        }
+
         ctx.save();
         ctx.shadowBlur = 6;
-        ctx.shadowColor = p.shadowColor;
-        ctx.fillStyle = p.color;
+        ctx.shadowColor = drawShadow;
+        ctx.fillStyle = drawColor;
         ctx.beginPath();
         ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
         ctx.fill();

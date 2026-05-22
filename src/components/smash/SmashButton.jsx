@@ -58,11 +58,9 @@ export default function SmashButton({ children, onClick, className = '', size = 
         ${sizeClasses} ${className}
       `}
       style={{
-        // Smash-style: sharp bottom-right & top-left corners, beveled edges
         background: `linear-gradient(170deg, ${c.bgFrom} 0%, ${c.bgTo} 100%)`,
         color: '#ffffff',
         letterSpacing: '3px',
-        // Multi-layer border: outer dark frame + colored inner glow border
         outline: `2px solid rgba(0,0,0,0.9)`,
         outlineOffset: '0px',
         border: `2px solid ${c.border}`,
@@ -111,7 +109,6 @@ export default function SmashButton({ children, onClick, className = '', size = 
         if (shine) shine.style.animation = 'none';
       }}
     >
-      {/* Top highlight streak */}
       <span
         className="absolute top-0 left-0 w-full pointer-events-none"
         style={{
@@ -119,7 +116,6 @@ export default function SmashButton({ children, onClick, className = '', size = 
           background: `linear-gradient(90deg, transparent 5%, ${c.topLine} 40%, rgba(255,255,255,0.6) 50%, ${c.topLine} 60%, transparent 95%)`,
         }}
       />
-      {/* Diagonal shine sweep on hover */}
       <span
         className="shine-effect absolute top-0 h-full w-1/2 pointer-events-none"
         style={{
@@ -128,7 +124,6 @@ export default function SmashButton({ children, onClick, className = '', size = 
           transform: 'skewX(-18deg)',
         }}
       />
-      {/* Bottom shadow line */}
       <span
         className="absolute bottom-0 left-0 w-full pointer-events-none"
         style={{

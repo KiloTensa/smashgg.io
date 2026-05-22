@@ -15,12 +15,10 @@ export default function ScreenTransition({ screenKey, children }) {
         initial="initial"
         animate="animate"
         exit="exit"
-        // Reducimos ligeramente la duración para que la app se sienta instantánea y responsiva
         transition={{ duration: 0.22, ease: 'easeOut' }}
         className="min-h-screen w-full flex flex-col items-center justify-center px-4 py-20 md:py-12 relative"
         style={{ 
           zIndex: 10,
-          // Le dice al navegador que optimice este contenedor para animaciones fluidas
           willChange: 'transform, opacity' 
         }}
       >

@@ -13,7 +13,6 @@ export default function SmashTitle({ children, className = '', subtitle = '' }) 
       >
         {children}
       </h1>
-      {/* Decorative line */}
       <div
         className="mt-2 h-[3px] rounded-full"
         style={{

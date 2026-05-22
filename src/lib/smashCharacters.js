@@ -90,4 +90,9 @@ export const DEFAULT_PLAYER_COLORS = ["#FFD700", "#FF6B6B", "#4ECDC4", "#9D65C9"
 
 export const STORAGE_KEY = 'smashGunGameState';
 
+export const DLC_CHARACTER_NAMES = [
+  "Planta Piraña", "Joker", "Hero", "Banjo & Kazooie", "Terry", "Byleth",
+  "Min Min", "Steve", "Sephiroth", "Pyra / Mythra", "Kazuya", "Sora"
+];
+
 export default smashCharacters;

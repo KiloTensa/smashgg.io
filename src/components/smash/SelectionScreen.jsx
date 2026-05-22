@@ -3,30 +3,27 @@ import { motion, AnimatePresence } from 'framer-motion';
 import SmashTitle from './SmashTitle';
 import SmashButton from './SmashButton';
 import CharacterCard from './CharacterCard';
-import smashCharacters from '@/lib/smashCharacters';
+import smashCharacters, { DLC_CHARACTER_NAMES } from '@/lib/smashCharacters';
 
 export default function SelectionScreen({ gameState, onUpdateState, onReady, onBack }) {
-  const { players, currentSelectionPlayer, charactersPerPlayer, listMode, playerCount } = gameState;
+  const { players, currentSelectionPlayer, charactersPerPlayer, listMode, playerCount, excludeDLC } = gameState;
 
   const isComplete = currentSelectionPlayer >= playerCount;
   const currentPlayer = !isComplete ? players[currentSelectionPlayer] : null;
   const selectedCount = currentPlayer?.characters?.length || 0;
 
-  // ESTADOS DE OPTIMIZACIÓN
   const [searchTerm, setSearchTerm] = useState('');
-  const [visibleLimit, setVisibleLimit] = useState(24); // Carga inicial pequeña para evitar lag
+  const [visibleLimit, setVisibleLimit] = useState(24);
 
-  // Carga progresiva de los personajes para no saturar el hilo principal
   useEffect(() => {
     if (visibleLimit < smashCharacters.length) {
       const timer = setTimeout(() => {
         setVisibleLimit(prev => Math.min(prev + 20, smashCharacters.length));
-      }, 50); // Agrega 20 personajes cada 50ms en segundo plano
+      }, 50);
       return () => clearTimeout(timer);
     }
   }, [visibleLimit]);
 
-  // OPTIMIZACIÓN: Diccionario O(1) para las selecciones
   const dotsMap = useMemo(() => {
     const map = {};
     players.forEach((player, pIdx) => {
@@ -38,21 +35,37 @@ export default function SelectionScreen({ gameState, onUpdateState, onReady, onB
     return map;
   }, [players]);
 
-  // OPTIMIZACIÓN: Filtrado eficiente por texto
   const filteredCharacters = useMemo(() => {
-    return smashCharacters
-      .map((char, index) => ({ ...char, originalIndex: index }))
-      .filter(char => char.name.toLowerCase().includes(searchTerm.toLowerCase()));
-  }, [searchTerm]);
+    let list = smashCharacters.map((char, index) => ({ ...char, originalIndex: index }));
 
-  // Cortamos la lista según el límite de carga progresiva
+    if (excludeDLC) {
+      list = list.filter(char => !DLC_CHARACTER_NAMES.includes(char.name));
+    }
+
+    if (searchTerm) {
+      list = list.filter(char => char.name.toLowerCase().includes(searchTerm.toLowerCase()));
+    }
+
+    return list;
+  }, [searchTerm, excludeDLC]);
+
   const charactersToRender = filteredCharacters.slice(0, visibleLimit);
 
   const handleCharClick = (charIndex) => {
+    const newState = JSON.parse(JSON.stringify(gameState));
+
+    if (gameState.selectionMode === 'random') {
+      if (!newState.bannedCharacters) newState.bannedCharacters = [];
+      const bIdx = newState.bannedCharacters.indexOf(charIndex);
+      if (bIdx !== -1) newState.bannedCharacters.splice(bIdx, 1);
+      else newState.bannedCharacters.push(charIndex);
+      onUpdateState(newState);
+      return;
+    }
+
     if (isComplete || !currentPlayer) return;
     if (listMode === 'shared' && currentSelectionPlayer > 0) return;
 
-    const newState = structuredClone(gameState);
     const cp = newState.players[newState.currentSelectionPlayer];
     const idx = cp.characters.indexOf(charIndex);
 
@@ -75,10 +88,54 @@ export default function SelectionScreen({ gameState, onUpdateState, onReady, onB
     onUpdateState(newState);
   };
 
-  const handleColorChange = (e) => {
-    if (isComplete) return;
-    const newState = structuredClone(gameState);
-    newState.players[newState.currentSelectionPlayer].color = e.target.value;
+  const handleRandomIndividual = () => {
+    if (isComplete || !currentPlayer) return;
+    if (listMode === 'shared' && currentSelectionPlayer > 0) {
+      console.warn('⚠️ Solo el primer jugador puede usar Random en modo compartido');
+      return;
+    }
+
+    const newState = JSON.parse(JSON.stringify(gameState));
+    const cp = newState.players[newState.currentSelectionPlayer];
+    const spotsNeeded = newState.charactersPerPlayer - cp.characters.length;
+
+    if (spotsNeeded <= 0) {
+      console.warn('⚠️ Este jugador ya completó su lista');
+      return;
+    }
+
+    let available = [];
+    if (newState.listMode === 'shared') {
+      available = [...Array(smashCharacters.length).keys()].filter(i => !cp.characters.includes(i));
+    } else {
+      const used = new Set();
+      newState.players.forEach(p => p.characters.forEach(ci => used.add(ci)));
+      available = [...Array(smashCharacters.length).keys()].filter(i => !used.has(i));
+    }
+
+    if (available.length === 0) {
+      console.warn('❌ No hay personajes disponibles');
+      return;
+    }
+
+    const toAssign = Math.min(spotsNeeded, available.length);
+    for (let i = 0; i < toAssign; i++) {
+      const rIdx = Math.floor(Math.random() * available.length);
+      const charIdx = available.splice(rIdx, 1)[0];
+      cp.characters.push(charIdx);
+    }
+
+    if (cp.characters.length >= newState.charactersPerPlayer) {
+      if (newState.listMode === 'shared' && newState.currentSelectionPlayer === 0) {
+        const masterList = [...cp.characters];
+        newState.players.forEach(p => { p.characters = [...masterList]; });
+        newState.currentSelectionPlayer = newState.playerCount;
+      } else {
+        newState.currentSelectionPlayer++;
+      }
+    }
+
+    console.log(`🎲 [${cp.name}] ${toAssign} personajes aleatorios asignados`);
     onUpdateState(newState);
   };
 
@@ -107,7 +164,6 @@ export default function SelectionScreen({ gameState, onUpdateState, onReady, onB
 
       <SmashTitle subtitle="Elige tu roster">SELECCIÓN DE PERSONAJES</SmashTitle>
 
-      {/* Buscador - Reduce drásticamente la carga visual si buscas a alguien */}
       <div className="w-full max-w-md mb-4 relative z-10">
         <input
           type="text"
@@ -119,7 +175,6 @@ export default function SelectionScreen({ gameState, onUpdateState, onReady, onB
         />
       </div>
 
-      {/* Status bar */}
       <AnimatePresence mode="wait">
         <motion.div
           key={isComplete ? 'complete' : currentSelectionPlayer}
@@ -162,21 +217,36 @@ export default function SelectionScreen({ gameState, onUpdateState, onReady, onB
         </motion.div>
       </AnimatePresence>
 
-      {/* Color picker */}
       {!isComplete && (
-        <div className="flex items-center gap-3 mb-4 px-4 py-1.5 rounded bg-black/60 border border-white/10">
-          <span className="font-smash text-xs tracking-widest text-white/40">COLOR:</span>
-          <input
-            type="color"
-            value={currentPlayer?.color || '#FFD700'}
-            onChange={handleColorChange}
-            className="w-8 h-6 border rounded cursor-pointer bg-transparent"
-            style={{ borderColor: currentPlayer?.color || '#FFD700' }}
-          />
+        <div className="flex items-center justify-center mb-4 px-4 py-1.5 rounded bg-black/60 border border-white/10">
+          <button
+            onClick={handleRandomIndividual}
+            disabled={isComplete}
+            className="font-smash text-xs uppercase tracking-widest px-3 py-1 rounded border-2 transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              borderColor: 'rgba(255,200,0,0.5)',
+              color: 'rgba(255,200,0,0.8)',
+              background: 'rgba(255,200,0,0.1)',
+            }}
+            onMouseEnter={(e) => {
+              if (!isComplete) {
+                e.target.style.borderColor = 'rgba(255,200,0,0.9)';
+                e.target.style.background = 'rgba(255,200,0,0.2)';
+                e.target.style.boxShadow = '0 0 12px rgba(255,200,0,0.4)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.borderColor = 'rgba(255,200,0,0.5)';
+              e.target.style.background = 'rgba(255,200,0,0.1)';
+              e.target.style.boxShadow = 'none';
+            }}
+            title="Asignar personajes aleatorios"
+          >
+            🎲 RANDOM
+          </button>
         </div>
       )}
 
-      {/* Character grid */}
       <div
         className="grid gap-2 w-full overflow-y-auto p-3 rounded-lg border-2 custom-scrollbar"
         style={{
@@ -203,7 +273,6 @@ export default function SelectionScreen({ gameState, onUpdateState, onReady, onB
         )}
       </div>
 
-      {/* Player overview pills */}
       <div className="flex gap-2 mt-4 flex-wrap justify-center">
         {players.map((p, i) => {
           const done = listMode === 'shared'
@@ -226,7 +295,6 @@ export default function SelectionScreen({ gameState, onUpdateState, onReady, onB
         })}
       </div>
 
-      {/* Buttons */}
       <div className="flex flex-col items-center gap-2 mt-4">
         {isComplete && (
           <SmashButton onClick={onReady} size="large" variant="gold">¡LISTO! ▶</SmashButton>

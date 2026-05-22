@@ -6,7 +6,6 @@ export default function LogoHeader() {
     try {
       window.dispatchEvent(new CustomEvent('smash:goToMenu'));
     } catch (e) {
-      // fallback: reload to menu
       window.location.reload();
     }
   };

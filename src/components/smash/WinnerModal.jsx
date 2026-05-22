@@ -123,8 +123,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
     Array.from({ length: 8 }, (_, index) => index),
     []
   );
-
-  // Memoizar estilos que dependen de winnerColor
   const burstStyle = useMemo(() => ({
     top: '50%',
     left: '50%',
@@ -208,9 +206,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
     isIntroFinished.current = false;
 
     const victoryTimeline = anime.timeline({ autoplay: true });
-
     victoryTimeline
-      // 1. EL APAGÓN TÁCTICO
       .add({
         targets: overlayRef.current,
         opacity: [0, 1],
@@ -219,8 +215,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
         duration: 400,
         easing: 'easeOutExpo',
       }, 0)
-
-      // 2. EL METEORO (Panel estrellándose)
       .add({
         targets: modalRef.current,
         opacity: [0, 1],
@@ -230,8 +224,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
         duration: 450,
         easing: 'easeInCubic',
       }, 100)
-
-      // 3. TERREMOTO DE CÁMARA (Camera Shake)
       .add({
         targets: modalRef.current,
         translateX: [
@@ -247,8 +239,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
         ],
         easing: 'easeInOutQuad',
       }, 550)
-
-      // 4. LA ONDA EXPANSIVA Y DESTELLO DE LUZ DEL REFLEJO (Destello rápido al impactar)
       .add({
         targets: burstRef.current,
         scale: [0, 4.5],
@@ -271,8 +261,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
         duration: 800,
         easing: 'easeOutQuad'
       }, 550)
-      
-      // EXPLOSIÓN DE ESCOMBROS
       .add({
         targets: sparkRefs.current,
         opacity: [1, 0],
@@ -282,8 +270,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
         duration: 700,
         easing: 'easeOutExpo',
       }, 550)
-
-      // 5. TALADRO DE TROFEO
       .add({
         targets: trophyRef.current,
         opacity: [0, 1],
@@ -292,8 +278,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
         duration: 900,
         easing: 'easeOutExpo',
       }, 700)
-
-      // 6. ENCENDIDO ELÉCTRICO NEÓN (Nombre del ganador)
       .add({
         targets: winnerRef.current,
         opacity: [0, 1, 0.2, 1, 0, 1],
@@ -302,8 +286,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
         duration: 800,
         easing: 'steps(5)',
       }, 900)
-
-      // 7. CORTE LATERAL (Botón)
       .add({
         targets: buttonRef.current,
         opacity: [0, 1],
@@ -312,8 +294,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
         duration: 600,
         easing: 'easeOutBack',
       }, 1200);
-
-    // Reposo Activo
     const energyPulse = anime({
       targets: ringRef.current,
       scale: [1, 1.05],
@@ -340,7 +320,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
     };
   }, [winnerColor]);
 
-  // Manejo del Movimiento de Perspectiva y Mapeo Dinámico del Reflejo Lineal
   useEffect(() => {
     const modal = modalRef.current;
     const overlay = overlayRef.current;
@@ -427,16 +406,14 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
           className="relative text-center px-10 py-12 rounded-[32px] mx-4 max-w-xl w-full overflow-hidden"
           style={modalStyle}
         >
-          {/* 💎 CAPA DEL REFLEJO LINEAL METÁLICO (Efecto Material Cristal/Placa Pulida) */}
           <div
             ref={shineRef}
             className="absolute inset-0 pointer-events-none"
             style={{
-              // Gradiente diagonal ultra limpio con destello blanco/plata en el centro exacto
               background: 'linear-gradient(115deg, transparent 35%, rgba(255, 255, 255, 0.0) 43%, rgba(255, 255, 255, 0.28) 49%, rgba(255, 255, 255, 0.73) 50%, rgba(255, 255, 255, 0.28) 51%, rgba(255, 255, 255, 0.0) 57%, transparent 65%)',
               backgroundSize: '280% 100%',
               backgroundPosition: '-200% 0%',
-              mixBlendMode: 'overlay', // Fusiona perfectamente la luz sobre las fuentes y texturas internas
+              mixBlendMode: 'overlay',
               zIndex: 5,
               opacity: 0,
               willChange: 'background-position, opacity',

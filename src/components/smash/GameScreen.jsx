@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import SmashTitle from './SmashTitle';
 import PlayerGameCard from './PlayerGameCard';
 
-export default function GameScreen({ players, onWinRound }) {
+export default function GameScreen({ players, onWinRound, onUndoRound }) {
   return (
     <div className="flex flex-col items-center w-full">
       <SmashTitle subtitle="¡Que empiece la batalla!">SMASH GUN GAME</SmashTitle>
@@ -19,6 +19,7 @@ export default function GameScreen({ players, onWinRound }) {
             player={player}
             playerIndex={i}
             onWinRound={onWinRound}
+            onUndoRound={onUndoRound}
           />
         ))}
       </motion.div>

@@ -1,0 +1,27 @@
+{
+  "name": "Smash Gun Game",
+  "short_name": "SmashGG",
+  "description": "Selector de personajes dinámico para el modo Gun Game de Super Smash Bros. Ultimate.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#06040e",
+  "theme_color": "#3bb9ff",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://cdn2.steamgriddb.com/logo_thumb/0498cae30ceca924f76c2b0832c14f34.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://cdn2.steamgriddb.com/logo_thumb/0498cae30ceca924f76c2b0832c14f34.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    { "name": "Comenzar Partida", "url": "/?start=true" }
+  ]
+}

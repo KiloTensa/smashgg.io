@@ -6,7 +6,6 @@ const TITLE_LINES = ['SMASH', 'GUN GAME'];
 export default function MainMenu({ onStart, onExit }) {
   return (
     <div className="flex flex-col items-center gap-2 w-full">
-      {/* Big title with staggered letter animation */}
       <div className="flex flex-col items-center mb-4 select-none">
         {TITLE_LINES.map((line, li) => (
           <motion.div
@@ -27,7 +26,6 @@ export default function MainMenu({ onStart, onExit }) {
             {line}
           </motion.div>
         ))}
-        {/* Decorative separator */}
         <motion.div
           initial={{ scaleX: 0, opacity: 0 }}
           animate={{ scaleX: 1, opacity: 1 }}
@@ -45,9 +43,16 @@ export default function MainMenu({ onStart, onExit }) {
         >
           Super Smash Bros. Ultimate
         </motion.p>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="font-bebas text-white/40 text-[11px] tracking-[0.6em] mt-3 uppercase"
+        >
+          By KiloTensa
+        </motion.p>
       </div>
 
-      {/* Buttons */}
       <div className="flex flex-col items-center gap-4 mt-4">
         <motion.div
           initial={{ opacity: 0, x: -40 }}
@@ -65,15 +70,25 @@ export default function MainMenu({ onStart, onExit }) {
         </motion.div>
       </div>
 
-      {/* Bottom version text */}
       <motion.p
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.1 }}
         className="font-bebas text-white/25 text-sm tracking-widest mt-10 uppercase"
       >
-        Selector de Personajes · Gun Game Mode
+        Gun Game
       </motion.p>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.5 }}
+        className="fixed bottom-6 right-8 pointer-events-none select-none z-50"
+      >
+        <p className="font-bebas text-white/15 text-[10px] tracking-[0.4em] uppercase">
+          By KiloTensa - 2026
+        </p>
+      </motion.div>
     </div>
   );
 }
