@@ -11,23 +11,13 @@ function useConfetti(active) {
   useEffect(() => {
     if (!active || !canvasRef.current) return;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d', { willReadFrequently: false, alpha: true });
+    const ctx = canvas.getContext('2d', { willReadFrequently: false });
     ctxRef.current = ctx;
     let resizeTimeout;
-
-    // Detectar dispositivo de baja potencia
-    const isLowEnd = navigator.deviceMemory <= 2 || window.innerWidth < 768;
-    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const resize = () => {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      // Usa escala DPI para evitar blurriness en alta densidad
-      const dpi = window.devicePixelRatio || 1;
-      if (dpi > 1) {
-        canvas.style.transform = `scale(${1 / dpi})`;
-        canvas.style.transformOrigin = '0 0';
-      }
     };
 
     const handleResize = () => {
@@ -36,11 +26,10 @@ function useConfetti(active) {
     };
 
     resize();
-    window.addEventListener('resize', handleResize, { passive: true });
+    window.addEventListener('resize', handleResize);
 
     const COLORS = ['#FFD700', '#FF6B6B', '#4ECDC4', '#9D65C9', '#3BB9FF', '#FFFFFF', '#FF8C00'];
-    // Reducir partículas en móviles o dispositivos de baja memoria
-    const COUNT = reduceMotion ? 0 : (isLowEnd ? 80 : 220);
+    const COUNT = 220;
 
     particles.current = Array.from({ length: COUNT }, () => ({
       x: Math.random() * canvas.width,
@@ -56,29 +45,32 @@ function useConfetti(active) {
       decay: Math.random() * 0.01 + 0.006,
     }));
 
-    // Optimize drawing con batching
     const draw = () => {
       const ctx = ctxRef.current;
-      if (!ctx) return;
-      
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       let activeParticle = false;
 
       const len = particles.current.length;
-      // Batch particles by shape para reducir context switches
-      const rects = [];
-      const circles = [];
-
       for (let i = 0; i < len; i++) {
         const particle = particles.current[i];
         if (particle.alpha <= 0) continue;
         activeParticle = true;
 
+        ctx.save();
+        ctx.globalAlpha = particle.alpha;
+        ctx.fillStyle = particle.color;
+        ctx.translate(particle.x, particle.y);
+        ctx.rotate((particle.rotation * Math.PI) / 180);
+
         if (particle.shape === 'rect') {
-          rects.push(particle);
+          ctx.fillRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size * 0.5);
         } else {
-          circles.push(particle);
+          ctx.beginPath();
+          ctx.arc(0, 0, particle.size / 2, 0, Math.PI * 2);
+          ctx.fill();
         }
+
+        ctx.restore();
 
         particle.x += particle.vx;
         particle.y += particle.vy;
@@ -88,30 +80,6 @@ function useConfetti(active) {
         particle.alpha -= particle.decay;
       }
 
-      // Draw all rects
-      rects.forEach(particle => {
-        ctx.save();
-        ctx.globalAlpha = particle.alpha;
-        ctx.fillStyle = particle.color;
-        ctx.translate(particle.x, particle.y);
-        ctx.rotate((particle.rotation * Math.PI) / 180);
-        ctx.fillRect(-particle.size / 2, -particle.size / 2, particle.size, particle.size * 0.5);
-        ctx.restore();
-      });
-
-      // Draw all circles
-      circles.forEach(particle => {
-        ctx.save();
-        ctx.globalAlpha = particle.alpha;
-        ctx.fillStyle = particle.color;
-        ctx.translate(particle.x, particle.y);
-        ctx.rotate((particle.rotation * Math.PI) / 180);
-        ctx.beginPath();
-        ctx.arc(0, 0, particle.size / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-      });
-
       if (activeParticle) rafRef.current = requestAnimationFrame(draw);
     };
 
@@ -120,10 +88,9 @@ function useConfetti(active) {
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       if (resizeTimeout) cancelAnimationFrame(resizeTimeout);
-      window.removeEventListener('resize', handleResize, { passive: true });
+      window.removeEventListener('resize', handleResize);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctxRef.current = null;
-      particles.current = [];
     };
   }, [active]);
 
@@ -159,7 +126,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
   const burstStyle = useMemo(() => ({
     top: '50%',
     left: '50%',
-    transform: 'translate(-50%, -50%) translateZ(0)',
+    transform: 'translate(-50%, -50%)',
     width: '400px',
     height: '400px',
     borderRadius: '50%',
@@ -168,8 +135,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
     filter: 'blur(30px)',
     mixBlendMode: 'screen',
     willChange: 'transform, opacity',
-    backfaceVisibility: 'hidden',
-    contain: 'layout style paint',
   }), [winnerColor]);
 
   const ringStyle = useMemo(() => ({
@@ -179,9 +144,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
     border: `solid ${winnerColor}`,
     opacity: 0,
     willChange: 'transform, opacity, border-width',
-    backfaceVisibility: 'hidden',
-    transform: 'translateZ(0)',
-    contain: 'layout style paint',
   }), [winnerColor]);
 
   const modalStyle = useMemo(() => ({
@@ -193,9 +155,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
     backdropFilter: 'blur(18px)',
     opacity: 0,
     willChange: 'transform, opacity',
-    backfaceVisibility: 'hidden',
-    transform: 'translateZ(0)',
-    contain: 'layout style paint',
   }), [winnerColor]);
 
   const topGradientStyle = useMemo(() => ({
@@ -213,9 +172,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
     color: winnerColor,
     textShadow: `0 0 40px ${winnerColor}aa`,
     willChange: 'transform, opacity',
-    backfaceVisibility: 'hidden',
-    transform: 'translateZ(0)',
-    contain: 'layout style paint',
   }), [winnerColor]);
 
   const winnerNameStyle = useMemo(() => ({
@@ -224,9 +180,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
     textShadow: `0 0 20px ${winnerColor}, 0 0 40px ${winnerColor}`,
     opacity: 0,
     willChange: 'transform, filter, opacity',
-    backfaceVisibility: 'hidden',
-    transform: 'translateZ(0)',
-    contain: 'layout style paint',
   }), [winnerColor]);
 
   const dividerStyle = useMemo(() => ({
@@ -238,9 +191,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
     height: 8,
     backgroundColor: winnerColor,
     opacity: 0,
-    willChange: 'transform, opacity',
-    backfaceVisibility: 'hidden',
-    transform: 'translateZ(0)',
+    willChange: 'transform, opacity'
   }), [winnerColor]);
 
   useEffect(() => {
@@ -376,26 +327,18 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
     const shine = shineRef.current;
     if (!modal || !overlay) return;
 
-    let throttleTimer = null;
-    let lastX = 0;
-    let lastY = 0;
-
     const handleMove = (event) => {
-      if (!isIntroFinished.current || throttleTimer) return;
+      if (!isIntroFinished.current || tickingRef.current) return;
 
-      lastX = event.clientX;
-      lastY = event.clientY;
-
-      throttleTimer = requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
         const rect = modal.getBoundingClientRect();
-        const x = (lastX - rect.left - rect.width / 2) / rect.width;
-        const y = (lastY - rect.top - rect.height / 2) / rect.height;
+        const x = (event.clientX - rect.left - rect.width / 2) / rect.width;
+        const y = (event.clientY - rect.top - rect.height / 2) / rect.height;
 
-        // Use translateZ for GPU acceleration
-        modal.style.transform = `perspective(1400px) rotateY(${x * 12}deg) rotateX(${-y * 10}deg) translateX(${x * 8}px) translateY(${y * 5}px) translateZ(0)`;
+        modal.style.transform = `perspective(1400px) rotateY(${x * 12}deg) rotateX(${-y * 10}deg) translateX(${x * 8}px) translateY(${y * 5}px)`;
         
         if (burst) {
-          burst.style.transform = `translateX(calc(-50% + ${x * 40}px)) translateY(${y * 30}px) translateZ(0)`;
+          burst.style.transform = `translateX(calc(-50% + ${x * 40}px)) translateY(${y * 30}px)`;
         }
         
         if (shine) {
@@ -404,15 +347,16 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
         }
 
         overlay.style.backgroundPosition = `${50 + x * 10}% ${45 + y * 8}%`;
-        throttleTimer = null;
+        tickingRef.current = false;
       });
+      tickingRef.current = true;
     };
 
     const reset = () => {
       if (!isIntroFinished.current) return;
-      modal.style.transform = 'perspective(1400px) rotateY(0deg) rotateX(0deg) translateX(0px) translateY(0px) translateZ(0)';
+      modal.style.transform = 'perspective(1400px) rotateY(0deg) rotateX(0deg) translateX(0px) translateY(0px)';
       if (burst) {
-        burst.style.transform = 'translateX(-50%) translateY(0px) translateZ(0)';
+        burst.style.transform = 'translateX(-50%) translateY(0px)';
       }
       if (shine) {
         shine.style.backgroundPosition = '50% 50%';
@@ -420,11 +364,10 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
       overlay.style.backgroundPosition = '50% 45%';
     };
 
-    modal.addEventListener('mousemove', handleMove, { passive: true });
-    modal.addEventListener('mouseleave', reset, { passive: true });
+    modal.addEventListener('mousemove', handleMove);
+    modal.addEventListener('mouseleave', reset);
 
     return () => {
-      if (throttleTimer) cancelAnimationFrame(throttleTimer);
       modal.removeEventListener('mousemove', handleMove);
       modal.removeEventListener('mouseleave', reset);
     };
@@ -432,15 +375,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
 
   return (
     <>
-      <canvas 
-        ref={canvasRef} 
-        className="fixed inset-0 pointer-events-none" 
-        style={{ 
-          zIndex: 210,
-          contain: 'layout style paint',
-          backfaceVisibility: 'hidden',
-        }} 
-      />
+      <canvas ref={canvasRef} className="fixed inset-0 pointer-events-none" style={{ zIndex: 210 }} />
 
       <div
         ref={overlayRef}
@@ -451,8 +386,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
           backgroundSize: '240% 240%',
           backgroundPosition: '50% 45%',
           willChange: 'backdrop-filter, opacity, background-color',
-          contain: 'layout style paint',
-          backfaceVisibility: 'hidden',
         }}
       >
         <div
@@ -484,8 +417,6 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
               zIndex: 5,
               opacity: 0,
               willChange: 'background-position, opacity',
-              contain: 'layout style paint',
-              backfaceVisibility: 'hidden',
             }}
           />
 
@@ -536,7 +467,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
 
           <div className="w-full h-px mb-8" style={dividerStyle} />
 
-          <div ref={buttonRef} className="relative z-10 opacity-0" style={{ willChange: 'transform, opacity', contain: 'layout style paint', backfaceVisibility: 'hidden' }}>
+          <div ref={buttonRef} className="relative z-10 opacity-0" style={{ willChange: 'transform, opacity' }}>
             <SmashButton onClick={onRestart} size="large" variant="gold">
               NUEVO COMBATE
             </SmashButton>
