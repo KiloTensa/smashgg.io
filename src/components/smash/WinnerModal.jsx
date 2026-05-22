@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback, useMemo } from 'react';
 import anime from 'animejs/lib/anime.es.js';
 import SmashButton from './SmashButton';
 
@@ -6,11 +6,13 @@ function useConfetti(active) {
   const rafRef = useRef(null);
   const canvasRef = useRef(null);
   const particles = useRef([]);
+  const ctxRef = useRef(null);
 
   useEffect(() => {
     if (!active || !canvasRef.current) return;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: false });
+    ctxRef.current = ctx;
     let resizeTimeout;
 
     const resize = () => {
@@ -44,6 +46,7 @@ function useConfetti(active) {
     }));
 
     const draw = () => {
+      const ctx = ctxRef.current;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       let activeParticle = false;
 
@@ -87,6 +90,7 @@ function useConfetti(active) {
       if (resizeTimeout) cancelAnimationFrame(resizeTimeout);
       window.removeEventListener('resize', handleResize);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctxRef.current = null;
     };
   }, [active]);
 
@@ -102,17 +106,95 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
   const buttonRef = useRef(null);
   const burstRef = useRef(null);
   const ringRef = useRef(null);
-  const shineRef = useRef(null); // Ref para la capa del reflejo lineal de luz
+  const shineRef = useRef(null);
+  
   const sparkRefs = useRef([]);
-  sparkRefs.current = [];
-
   const isIntroFinished = useRef(false);
+  const tickingRef = useRef(false);
+  const animeInstancesRef = useRef({ timeline: null, pulse: null });
 
-  const setSparkRef = (element) => {
+  const setSparkRef = useCallback((element) => {
     if (element && !sparkRefs.current.includes(element)) {
       sparkRefs.current.push(element);
     }
-  };
+  }, []);
+
+  const sparkArray = useMemo(() => 
+    Array.from({ length: 8 }, (_, index) => index),
+    []
+  );
+
+  // Memoizar estilos que dependen de winnerColor
+  const burstStyle = useMemo(() => ({
+    top: '50%',
+    left: '50%',
+    transform: 'translate(-50%, -50%)',
+    width: '400px',
+    height: '400px',
+    borderRadius: '50%',
+    background: `radial-gradient(circle at center, ${winnerColor} 0%, transparent 60%)`,
+    opacity: 0,
+    filter: 'blur(30px)',
+    mixBlendMode: 'screen',
+    willChange: 'transform, opacity',
+  }), [winnerColor]);
+
+  const ringStyle = useMemo(() => ({
+    width: '200px',
+    height: '200px',
+    borderRadius: '50%',
+    border: `solid ${winnerColor}`,
+    opacity: 0,
+    willChange: 'transform, opacity, border-width',
+  }), [winnerColor]);
+
+  const modalStyle = useMemo(() => ({
+    background: 'linear-gradient(160deg, rgba(6,5,18,0.98) 0%, rgba(21,17,33,0.98) 100%)',
+    border: `2px solid ${winnerColor}88`,
+    boxShadow: `0 0 80px ${winnerColor}33, 0 32px 140px rgba(0,0,0,0.8)`,
+    transformStyle: 'preserve-3d',
+    perspective: '1400px',
+    backdropFilter: 'blur(18px)',
+    opacity: 0,
+    willChange: 'transform, opacity',
+  }), [winnerColor]);
+
+  const topGradientStyle = useMemo(() => ({
+    background: `linear-gradient(90deg, transparent, ${winnerColor}, transparent)`
+  }), [winnerColor]);
+
+  const badgeStyle = useMemo(() => ({
+    color: winnerColor,
+    backgroundColor: `${winnerColor}15`,
+    border: `1px solid ${winnerColor}44`
+  }), [winnerColor]);
+
+  const trophyStyle = useMemo(() => ({
+    opacity: 0,
+    color: winnerColor,
+    textShadow: `0 0 40px ${winnerColor}aa`,
+    willChange: 'transform, opacity',
+  }), [winnerColor]);
+
+  const winnerNameStyle = useMemo(() => ({
+    fontSize: 'clamp(3.5rem, 8vw, 5.5rem)',
+    color: '#ffffff',
+    textShadow: `0 0 20px ${winnerColor}, 0 0 40px ${winnerColor}`,
+    opacity: 0,
+    willChange: 'transform, filter, opacity',
+  }), [winnerColor]);
+
+  const dividerStyle = useMemo(() => ({
+    background: `linear-gradient(90deg, transparent, ${winnerColor}88, transparent)`
+  }), [winnerColor]);
+
+  const sparkStyle = useMemo(() => ({
+    width: 8,
+    height: 8,
+    backgroundColor: winnerColor,
+    opacity: 0,
+    willChange: 'transform, opacity'
+  }), [winnerColor]);
 
   useEffect(() => {
     if (!overlayRef.current || !modalRef.current) return;
@@ -185,7 +267,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
       .add({
         targets: shineRef.current,
         opacity: [0, 1, 0],
-        backgroundPosition: ['-200% 0%', '200% 0%'], // Barrido cinemático ultra veloz en la entrada
+        backgroundPosition: ['-200% 0%', '200% 0%'],
         duration: 800,
         easing: 'easeOutQuad'
       }, 550)
@@ -243,15 +325,18 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
       autoplay: false,
     });
 
+    animeInstancesRef.current = { timeline: victoryTimeline, pulse: energyPulse };
+
     victoryTimeline.complete = () => {
       isIntroFinished.current = true;
       energyPulse.play();
-      if (shineRef.current) shineRef.current.style.opacity = '1'; // Fijar opacidad para la interacción del mouse
+      if (shineRef.current) shineRef.current.style.opacity = '1';
     };
 
     return () => {
       victoryTimeline.pause();
       energyPulse.pause();
+      animeInstancesRef.current = { timeline: null, pulse: null };
     };
   }, [winnerColor]);
 
@@ -263,36 +348,29 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
     const shine = shineRef.current;
     if (!modal || !overlay) return;
 
-    let ticking = false;
-
     const handleMove = (event) => {
-      if (!isIntroFinished.current || ticking) return;
+      if (!isIntroFinished.current || tickingRef.current) return;
 
       window.requestAnimationFrame(() => {
         const rect = modal.getBoundingClientRect();
-        // Coordenadas normalizadas entre -0.5 y 0.5 basadas en el centro del modal
         const x = (event.clientX - rect.left - rect.width / 2) / rect.width;
         const y = (event.clientY - rect.top - rect.height / 2) / rect.height;
 
-        // Rotación 3D del panel
         modal.style.transform = `perspective(1400px) rotateY(${x * 12}deg) rotateX(${-y * 10}deg) translateX(${x * 8}px) translateY(${y * 5}px)`;
         
-        // Movimiento del destello circular de fondo
         if (burst) {
           burst.style.transform = `translateX(calc(-50% + ${x * 40}px)) translateY(${y * 30}px)`;
         }
         
-        // 🔮 INTERACCIÓN DEL REFLEJO LINEAL (Metal/Cristal Pulido)
-        // Mapea la posición X del ratón a la posición del gradiente de fondo (de 0% a 100%)
         if (shine) {
-          const percentagePosition = 50 + (x * 120); // El rango dinámico cruza de izquierda a derecha perfectamente
+          const percentagePosition = 50 + (x * 120);
           shine.style.backgroundPosition = `${percentagePosition}% 50%`;
         }
 
         overlay.style.backgroundPosition = `${50 + x * 10}% ${45 + y * 8}%`;
-        ticking = false;
+        tickingRef.current = false;
       });
-      ticking = true;
+      tickingRef.current = true;
     };
 
     const reset = () => {
@@ -302,7 +380,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
         burst.style.transform = 'translateX(-50%) translateY(0px)';
       }
       if (shine) {
-        shine.style.backgroundPosition = '50% 50%'; // Regresa al centro suavemente
+        shine.style.backgroundPosition = '50% 50%';
       }
       overlay.style.backgroundPosition = '50% 45%';
     };
@@ -334,48 +412,20 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
         <div
           ref={burstRef}
           className="absolute pointer-events-none"
-          style={{
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '400px',
-            height: '400px',
-            borderRadius: '50%',
-            background: `radial-gradient(circle at center, ${winnerColor} 0%, transparent 60%)`,
-            opacity: 0,
-            filter: 'blur(30px)',
-            mixBlendMode: 'screen',
-            willChange: 'transform, opacity',
-          }}
+          style={burstStyle}
         />
 
         <div
           ref={ringRef}
           className="absolute pointer-events-none"
-          style={{
-            width: '200px',
-            height: '200px',
-            borderRadius: '50%',
-            border: `solid ${winnerColor}`,
-            opacity: 0,
-            willChange: 'transform, opacity, border-width',
-          }}
+          style={ringStyle}
         />
 
         {/* CONTENEDOR PRINCIPAL */}
         <div
           ref={modalRef}
           className="relative text-center px-10 py-12 rounded-[32px] mx-4 max-w-xl w-full overflow-hidden"
-          style={{
-            background: 'linear-gradient(160deg, rgba(6,5,18,0.98) 0%, rgba(21,17,33,0.98) 100%)',
-            border: `2px solid ${winnerColor}88`,
-            boxShadow: `0 0 80px ${winnerColor}33, 0 32px 140px rgba(0,0,0,0.8)`,
-            transformStyle: 'preserve-3d',
-            perspective: '1400px',
-            backdropFilter: 'blur(18px)',
-            opacity: 0,
-            willChange: 'transform, opacity',
-          }}
+          style={modalStyle}
         >
           {/* 💎 CAPA DEL REFLEJO LINEAL METÁLICO (Efecto Material Cristal/Placa Pulida) */}
           <div
@@ -393,11 +443,11 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
             }}
           />
 
-          <div className="absolute inset-x-0 top-0 h-2 rounded-t-[32px]" style={{ background: `linear-gradient(90deg, transparent, ${winnerColor}, transparent)` }} />
+          <div className="absolute inset-x-0 top-0 h-2 rounded-t-[32px]" style={topGradientStyle} />
 
           <div className="relative z-10 flex flex-col items-center gap-4">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <span className="px-4 py-1 rounded-full text-[0.8rem] font-bold tracking-[0.3em] uppercase" style={{ color: winnerColor, backgroundColor: `${winnerColor}15`, border: `1px solid ${winnerColor}44`}}>
+              <span className="px-4 py-1 rounded-full text-[0.8rem] font-bold tracking-[0.3em] uppercase" style={badgeStyle}>
                 VICTORIA ABSOLUTA
               </span>
             </div>
@@ -405,12 +455,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
             <div
               ref={trophyRef}
               className="text-[6rem] mb-4 leading-none relative"
-              style={{
-                opacity: 0,
-                color: winnerColor,
-                textShadow: `0 0 40px ${winnerColor}aa`,
-                willChange: 'transform, opacity',
-              }}
+              style={trophyStyle}
             >
               <span className="inline-flex items-center justify-center">🏆</span>
             </div>
@@ -419,13 +464,7 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
               <h2
                 ref={winnerRef}
                 className="font-smash uppercase mb-2"
-                style={{
-                  fontSize: 'clamp(3.5rem, 8vw, 5.5rem)',
-                  color: '#ffffff',
-                  textShadow: `0 0 20px ${winnerColor}, 0 0 40px ${winnerColor}`,
-                  opacity: 0,
-                  willChange: 'transform, filter, opacity',
-                }}
+                style={winnerNameStyle}
               >
                 {winnerName}
               </h2>
@@ -438,18 +477,18 @@ export default function WinnerModal({ winnerName, winnerColor = '#ffd700', onRes
 
           <div className="relative z-10">
             <div className="absolute top-1/2 left-1/2">
-              {Array.from({ length: 8 }).map((_, index) => (
+              {sparkArray.map((index) => (
                 <span
                   key={index}
                   ref={setSparkRef}
                   className="absolute rounded-full"
-                  style={{ width: 8, height: 8, backgroundColor: winnerColor, opacity: 0, willChange: 'transform, opacity' }}
+                  style={sparkStyle}
                 />
               ))}
             </div>
           </div>
 
-          <div className="w-full h-px mb-8" style={{ background: `linear-gradient(90deg, transparent, ${winnerColor}88, transparent)` }} />
+          <div className="w-full h-px mb-8" style={dividerStyle} />
 
           <div ref={buttonRef} className="relative z-10 opacity-0" style={{ willChange: 'transform, opacity' }}>
             <SmashButton onClick={onRestart} size="large" variant="gold">
