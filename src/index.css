@@ -90,7 +90,6 @@
   }
 }
 
-/* ─── SMASH ULTIMATE BACKGROUND ─────────────────────────── */
 body {
   background:
     radial-gradient(ellipse 120% 80% at 50% 0%, rgba(80,30,160,0.55) 0%, transparent 60%),
@@ -101,17 +100,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Deep vignette */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: radial-gradient(ellipse 100% 100% at 50% 50%, transparent 35%, rgba(0,0,0,0.75) 100%);
-  pointer-events: none;
-  z-index: 0;
-}
 
-/* Diagonal light stripe (SSBU title screen style) */
 body::after {
   content: '';
   position: fixed;
@@ -123,8 +112,6 @@ body::after {
   z-index: 0;
 }
 
-/* ─── ANIMATIONS ─────────────────────────────────────────── */
-
 @keyframes particleFloat {
   0%   { transform: translateY(0) translateX(0) scale(0.4) rotate(0deg); opacity: 0; }
   8%   { opacity: 0.9; }
@@ -132,92 +119,77 @@ body::after {
   100% { transform: translateY(-105vh) translateX(80px) scale(0.2) rotate(360deg); opacity: 0; }
 }
 
-/* Panel glow pulse */
 @keyframes panelGlow {
   0%   { box-shadow: 0 0 20px rgba(59,185,255,0.35), inset 0 0 12px rgba(59,185,255,0.15); }
   100% { box-shadow: 0 0 40px rgba(59,185,255,0.65), inset 0 0 25px rgba(59,185,255,0.28); }
 }
 
-/* Gold panel glow for selected state */
 @keyframes goldPanelGlow {
   0%   { box-shadow: 0 0 20px rgba(255,204,0,0.4), inset 0 0 10px rgba(255,204,0,0.15); }
   100% { box-shadow: 0 0 45px rgba(255,204,0,0.75), inset 0 0 22px rgba(255,204,0,0.25); }
 }
 
-/* Selection dot pulse */
 @keyframes pulseGlow {
   0%   { transform: scale(0.9); opacity: 0.8; }
   100% { transform: scale(1.3); opacity: 1; }
 }
 
-/* Winner text blink */
 @keyframes winnerBlink {
   0%, 100% { opacity: 1; text-shadow: 0 0 30px #ffcc00, 0 0 60px rgba(255,200,0,0.6), 0 4px 0 #000; }
   50%       { opacity: 0.7; text-shadow: 0 0 10px #ffcc00, 0 4px 0 #000; }
 }
 
-/* Winner modal background pulse */
 @keyframes winnerBgPulse {
   0%   { box-shadow: 0 0 60px #ffcc00, 0 0 120px rgba(255,204,0,0.4), inset 0 0 30px rgba(255,204,0,0.1); }
   100% { box-shadow: 0 0 100px #ffcc00, 0 0 200px rgba(255,204,0,0.6), inset 0 0 50px rgba(255,204,0,0.2); }
 }
 
-/* Shine sweep for buttons */
 @keyframes shineSweep {
   0%   { left: -100%; }
   100% { left: 150%; }
 }
 
-/* Character select flash on click */
 @keyframes selectFlash {
   0%   { background: rgba(255,255,255,0.7); }
   100% { background: rgba(255,255,255,0); }
 }
 
-/* Card entry */
 @keyframes cardPulse {
   0%   { transform: scale(0.92); opacity: 0; }
   100% { transform: scale(1);    opacity: 1; }
 }
 
-/* Background star twinkle */
 @keyframes twinkle {
   0%, 100% { opacity: 0.2; transform: scale(0.8); }
   50%       { opacity: 1;   transform: scale(1.2); }
 }
 
-/* Slide up entry */
 @keyframes slideUp {
   from { transform: translateY(40px); opacity: 0; }
   to   { transform: translateY(0);    opacity: 1; }
 }
 
-/* Horizontal line expand */
 @keyframes lineExpand {
   from { width: 0; opacity: 0; }
   to   { width: 100%; opacity: 1; }
 }
 
-/* Logo pulse glow */
 @keyframes logoPulse {
   0%, 100% { filter: drop-shadow(0 0 8px rgba(59,185,255,0.9)) drop-shadow(0 0 16px rgba(59,185,255,0.4)); }
   50%       { filter: drop-shadow(0 0 4px rgba(59,185,255,0.5)) drop-shadow(0 0 8px rgba(59,185,255,0.2)); }
 }
 
-/* Round win flash overlay */
 @keyframes winFlash {
   0%   { opacity: 0.8; }
   100% { opacity: 0; }
 }
 
-/* Score pip pop */
 @keyframes pipPop {
   0%   { transform: scale(0); opacity: 0; }
   60%  { transform: scale(1.4); }
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* Floating badge */
 @keyframes floatUp {
   0%   { transform: translateY(0) scale(1); opacity: 1; }
   100% { transform: translateY(-60px) scale(1.3); opacity: 0; }

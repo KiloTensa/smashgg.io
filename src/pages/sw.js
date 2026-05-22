@@ -1,6 +1,5 @@
 const CACHE_NAME = 'smash-gg-v1';
 
-// Recursos básicos para que la app cargue sin internet
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -14,7 +13,6 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Estrategia: Cache First para imágenes de personajes, Network First para lo demás
   const isImage = event.request.destination === 'image' || event.request.url.includes('images.gameinfo.io');
 
   event.respondWith(
@@ -32,7 +30,6 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // Si falla la red y no hay caché, devolver el recurso cacheado si existe
         return cachedResponse;
       });
     })

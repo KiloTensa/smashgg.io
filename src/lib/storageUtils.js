@@ -1,16 +1,5 @@
-/**
- * Utilidades para gestionar datos persistentes en localStorage
- * Proporciona helpers para guardar/cargar datos con manejo de errores
- */
-
 const LOG_PREFIX = '[Storage Utils]';
 
-/**
- * Guarda datos en localStorage de forma segura
- * @param {string} key - Clave del almacenamiento
- * @param {any} data - Datos a guardar
- * @returns {boolean} - true si fue exitoso
- */
 export function saveToStorage(key, data) {
   try {
     const serialized = JSON.stringify(data);
@@ -27,12 +16,6 @@ export function saveToStorage(key, data) {
   }
 }
 
-/**
- * Carga datos desde localStorage de forma segura
- * @param {string} key - Clave del almacenamiento
- * @param {any} defaultValue - Valor por defecto si falla
- * @returns {any} - Datos deserializados o defaultValue
- */
 export function loadFromStorage(key, defaultValue = null) {
   try {
     const item = localStorage.getItem(key);
@@ -48,11 +31,6 @@ export function loadFromStorage(key, defaultValue = null) {
   }
 }
 
-/**
- * Elimina datos de localStorage
- * @param {string} key - Clave a eliminar
- * @returns {boolean} - true si fue exitoso
- */
 export function removeFromStorage(key) {
   try {
     localStorage.removeItem(key);
@@ -64,10 +42,6 @@ export function removeFromStorage(key) {
   }
 }
 
-/**
- * Obtiene estadísticas del almacenamiento local
- * @returns {object} - Información de uso del almacenamiento
- */
 export function getStorageStats() {
   let totalSize = 0;
   const items = [];
@@ -98,10 +72,6 @@ export function getStorageStats() {
   }
 }
 
-/**
- * Limpia localStorage completamente (¡cuidado!)
- * @returns {boolean} - true si fue exitoso
- */
 export function clearAllStorage() {
   try {
     localStorage.clear();
@@ -113,10 +83,6 @@ export function clearAllStorage() {
   }
 }
 
-/**
- * Verifica disponibilidad de localStorage
- * @returns {boolean} - true si localStorage está disponible
- */
 export function isStorageAvailable() {
   try {
     const test = '__localStorage_test__';

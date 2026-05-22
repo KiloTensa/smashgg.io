@@ -20,7 +20,7 @@ function App() {
     let loadedCount = 0;
     const total = urls.length;
 
-    // Modificamos la lógica para seguir el progreso real de la GPU
+
     const uniqueUrls = Array.from(new Set(urls.filter(Boolean)));
     
     const promises = uniqueUrls.map((url) => {

@@ -96,11 +96,8 @@ export default function SmashGunGame() {
     }
   }, []);
 
-  // Usar hook para gestionar persistencia
   const storage = useGameStateStorage(gameState, setGameState);
 
-  // Start preloading character images as soon as the component mounts
-  // so transitions to selection/game screens are instant.
   useEffect(() => {
     const urls = smashCharacters.map(c => c.image);
     preloadImages(urls);
@@ -110,7 +107,6 @@ export default function SmashGunGame() {
     setGameState(prev => ({ ...prev, screen }));
   }, []);
 
-  // Listen for clicks on the global logo header to return to menu
   useEffect(() => {
     const handler = () => goToScreen('menu');
     window.addEventListener('smash:goToMenu', handler);
@@ -118,7 +114,6 @@ export default function SmashGunGame() {
   }, [goToScreen]);
 
 
-  // Menu handlers
   const handleStart = () => goToScreen('config');
   const handleExit = () => {
     storage.clearStorage();

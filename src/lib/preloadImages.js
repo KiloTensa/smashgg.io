@@ -1,8 +1,7 @@
 export async function preloadImages(urls = []) {
   const unique = Array.from(new Set(urls.filter(Boolean)));
-  const CONCURRENCY_LIMIT = 6; // Límite estándar óptimo para navegadores
+  const CONCURRENCY_LIMIT = 6;
   
-  // Procesar las imágenes en subgrupos secuenciales sin colapsar el canal de red
   for (let i = 0; i < unique.length; i += CONCURRENCY_LIMIT) {
     const chunk = unique.slice(i, i + CONCURRENCY_LIMIT);
     await Promise.all(chunk.map((u) => new Promise((res) => {

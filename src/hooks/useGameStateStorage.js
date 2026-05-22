@@ -4,12 +4,7 @@ const STORAGE_KEY = 'smashGunGameState';
 const STORAGE_VERSION = 1;
 const MAX_STORAGE_ATTEMPTS = 3;
 
-/**
- * Hook para gestionar la persistencia del gameState en localStorage
- * Maneja: guardado automático, recuperación, versionado y errores
- */
 export function useGameStateStorage(gameState, setGameState) {
-  // Cargar estado inicial desde localStorage
   const loadInitialState = useCallback(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
@@ -17,7 +12,6 @@ export function useGameStateStorage(gameState, setGameState) {
 
       const parsed = JSON.parse(stored);
       
-      // Validar versión
       if (parsed.version && parsed.version !== STORAGE_VERSION) {
         console.warn(`⚠️ [Storage] Versión anterior detectada (v${parsed.version}), usando estado por defecto`);
         return null;
@@ -30,7 +24,6 @@ export function useGameStateStorage(gameState, setGameState) {
     }
   }, []);
 
-  // Guardar estado a localStorage
   const saveGameState = useCallback((state) => {
     let attempts = 0;
     
@@ -48,7 +41,6 @@ export function useGameStateStorage(gameState, setGameState) {
           attempts++;
           if (attempts < MAX_STORAGE_ATTEMPTS) {
             console.warn(`⚠️ [Storage] Cuota excedida, intento ${attempts} de ${MAX_STORAGE_ATTEMPTS}`);
-            // Intentar limpiar datos viejos
             try {
               localStorage.removeItem(STORAGE_KEY);
               return trySave();
@@ -69,7 +61,6 @@ export function useGameStateStorage(gameState, setGameState) {
     return trySave();
   }, []);
 
-  // Guardar automáticamente cada cambio de gameState
   useEffect(() => {
     if (gameState && Object.keys(gameState).length > 0) {
       const success = saveGameState(gameState);
@@ -79,7 +70,6 @@ export function useGameStateStorage(gameState, setGameState) {
     }
   }, [gameState, saveGameState]);
 
-  // Guardar antes de descargar la página
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (gameState) {
@@ -91,7 +81,6 @@ export function useGameStateStorage(gameState, setGameState) {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [gameState, saveGameState]);
 
-  // Limpiar localStorage manualmente
   const clearStorage = useCallback(() => {
     try {
       localStorage.removeItem(STORAGE_KEY);
@@ -103,7 +92,6 @@ export function useGameStateStorage(gameState, setGameState) {
     }
   }, []);
 
-  // Obtener información del almacenamiento
   const getStorageInfo = useCallback(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
